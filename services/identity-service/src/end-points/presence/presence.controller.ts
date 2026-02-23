@@ -1,5 +1,5 @@
 import { Controller, Post, Req, UseGuards } from "@nestjs/common";
-import { JwtAuthGuard } from "../guards/jwt-auth.guard.js";
+import { JwtAuthGuard } from "../../guards/jwt-auth.guard.js";
 import { PresenceService } from "./presence.service.js";
 
 @Controller("presence")

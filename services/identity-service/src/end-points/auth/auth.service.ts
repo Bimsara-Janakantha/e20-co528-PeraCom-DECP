@@ -1,8 +1,8 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { OAuth2Client } from "google-auth-library";
-import { PrismaService } from "../prisma/prisma.service.js";
-import { env } from "../config/validateEnv.config.js";
+import { PrismaService } from "../../prisma/prisma.service.js";
+import { env } from "../../config/validateEnv.config.js";
 
 @Injectable()
 export class AuthService {

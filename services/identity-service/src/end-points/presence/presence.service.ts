@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { RedisService } from "../redis/redis.service.js";
-import { env } from "../config/validateEnv.config.js";
+import { RedisService } from "../../redis/redis.service.js";
+import { env } from "../../config/validateEnv.config.js";
 
 @Injectable()
 export class PresenceService {
