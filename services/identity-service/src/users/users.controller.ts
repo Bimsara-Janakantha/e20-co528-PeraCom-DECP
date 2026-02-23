@@ -25,4 +25,12 @@ export class UsersController {
   validateBulk(@Body() body: CreateBulkDto) {
     return this.usersService.validateBulkStudents(body.students);
   }
+
+  // POST /users/bulk/create
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  @Post("bulk/create")
+  bulkCreate(@Body() body: CreateBulkDto) {
+    return this.usersService.bulkCreateStudents(body.students);
+  }
 }

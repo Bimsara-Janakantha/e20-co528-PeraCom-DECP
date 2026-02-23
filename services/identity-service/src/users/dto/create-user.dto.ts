@@ -16,4 +16,8 @@ export class CreateUserDto {
   @IsString()
   @IsNotEmpty()
   last_name!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  role!: "STUDENT" | "ALUMNI" | "ADMIN";
 }
