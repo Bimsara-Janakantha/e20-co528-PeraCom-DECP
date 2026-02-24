@@ -34,10 +34,6 @@ export class UpdateRolesDto {
 }
 
 export class UpdateUserAdminDto {
-  @IsNotEmpty()
-  @IsUUID()
-  id!: string;
-
   @IsOptional()
   @IsString()
   first_name?: string;

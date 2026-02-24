@@ -349,22 +349,20 @@ export class UsersService {
   async updateUserByAdmin(
     adminId: string,
     correlationId: string,
+    userId: string,
     userData: UpdateUserAdminDto,
   ) {
     // 1. Admin cannot update their own profile through this endpoint
-    if (adminId === userData.id) {
+    if (adminId === userId) {
       throw new BadRequestException(
         "Admin cannot update their own profile here",
       );
     }
 
     // 2. Prepare update data (only allow certain fields to be updated)
-    const { id, ...data } = userData;
-
-    // 3. Update the existing user in the database
     const updatedUser = await this.prisma.user.update({
-      where: { id, is_active: true },
-      data: data,
+      where: { id: userId, is_active: true },
+      data: userData,
     });
 
     // 4. If user doesn't exist, throw an error

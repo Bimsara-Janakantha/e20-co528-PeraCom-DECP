@@ -16,6 +16,7 @@ import type { BulkSuspendDto } from "./dto/suspend-bulk.dto.js";
 import { CorrelationId } from "../auth/decorators/correlation-id.decorator.js";
 import { ActorId } from "../auth/decorators/actor.decorator.js";
 import type { UpdateProfileDto } from "./dto/update-profile.dto.js";
+import type { UpdateUserAdminDto } from "./dto/update-admin.dto.js";
 
 @Controller("users")
 export class UsersController {
@@ -94,5 +95,23 @@ export class UsersController {
     @Body() payload: UpdateProfileDto,
   ) {
     return this.usersService.updateProfile(actor, correlationId, payload);
+  }
+
+  // PATCH /users/:id
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  @Patch(":id")
+  updateUserByAdmin(
+    @ActorId() adminId: string,
+    @CorrelationId() correlationId: string,
+    @Param("id") userId: string,
+    @Body() userData: UpdateUserAdminDto,
+  ) {
+    return this.usersService.updateUserByAdmin(
+      adminId,
+      correlationId,
+      userId,
+      userData,
+    );
   }
 }
