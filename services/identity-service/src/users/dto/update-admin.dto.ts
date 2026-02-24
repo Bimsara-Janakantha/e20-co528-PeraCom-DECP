@@ -1,14 +1,12 @@
-import { Type } from "class-transformer";
 import {
   IsOptional,
   IsString,
   IsEmail,
-  IsNotEmpty,
   IsUUID,
   Matches,
   IsEnum,
   IsArray,
-  ValidateNested,
+  ArrayNotEmpty,
 } from "class-validator";
 
 export enum UserRole {
@@ -17,20 +15,14 @@ export enum UserRole {
   ALUMNI = "ALUMNI",
 }
 
-class RoleChangeItem {
-  @IsNotEmpty()
-  @IsUUID()
-  id!: string;
+export class UpdateRolesDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID("all", { each: true })
+  userIds!: string[];
 
   @IsEnum(UserRole)
   role!: UserRole;
-}
-
-export class UpdateRolesDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => RoleChangeItem)
-  users!: RoleChangeItem[];
 }
 
 export class UpdateUserAdminDto {

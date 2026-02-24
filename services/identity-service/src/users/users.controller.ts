@@ -16,7 +16,10 @@ import type { BulkSuspendDto } from "./dto/suspend-bulk.dto.js";
 import { CorrelationId } from "../auth/decorators/correlation-id.decorator.js";
 import { ActorId } from "../auth/decorators/actor.decorator.js";
 import type { UpdateProfileDto } from "./dto/update-profile.dto.js";
-import type { UpdateUserAdminDto } from "./dto/update-admin.dto.js";
+import type {
+  UpdateRolesDto,
+  UpdateUserAdminDto,
+} from "./dto/update-admin.dto.js";
 
 @Controller("users")
 export class UsersController {
@@ -113,5 +116,17 @@ export class UsersController {
       userId,
       userData,
     );
+  }
+
+  // PATCH /users/roles
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  @Patch("roles")
+  updateRoles(
+    @ActorId() admin: string,
+    @CorrelationId() correlationId: string,
+    @Body() payload: UpdateRolesDto,
+  ) {
+    return this.usersService.updateUserRoles(admin, correlationId, payload);
   }
 }

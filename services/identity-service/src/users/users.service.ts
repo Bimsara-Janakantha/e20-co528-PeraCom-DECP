@@ -3,13 +3,17 @@ import {
   ConflictException,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { v7 as uuidv7 } from "uuid";
 import { publishEvent, type BaseEvent } from "@decp/event-bus";
 import type { CreateUserDto } from "./dto/create-user.dto.js";
 import type { UpdateProfileDto } from "./dto/update-profile.dto.js";
-import type { UpdateUserAdminDto } from "./dto/update-admin.dto.js";
+import type {
+  UpdateRolesDto,
+  UpdateUserAdminDto,
+} from "./dto/update-admin.dto.js";
 
 @Injectable()
 export class UsersService {
@@ -354,7 +358,7 @@ export class UsersService {
   ) {
     // 1. Admin cannot update their own profile through this endpoint
     if (adminId === userId) {
-      throw new BadRequestException(
+      throw new ForbiddenException(
         "Admin cannot update their own profile here",
       );
     }
@@ -387,5 +391,57 @@ export class UsersService {
     await publishEvent("identity.user.events", userUpdatedEvent);
 
     return updatedUser;
+  }
+
+  // ======================================
+  // ROLE CHANGE (SINGLE + BULK)
+  // ======================================
+  async updateUserRoles(
+    adminId: string,
+    correlationId: string,
+    payload: UpdateRolesDto,
+  ) {
+    // 1. Prevent self demotion
+    if (payload.userIds.includes(adminId)) {
+      throw new ForbiddenException("Admins cannot change their own role");
+    }
+
+    // 2. Update users in the database (only those that are currently active)
+    const result = await this.prisma.user.updateMany({
+      where: { id: { in: payload.userIds }, is_active: true },
+      data: { role: payload.role },
+    });
+
+    console.log(
+      `Attempted to update ${payload.userIds.length} users. Actually updated: ${result.count}`,
+    );
+
+    // 3. If no users were updated, it could be because they were already in the target role or didn't exist
+    if (result.count === 0) {
+      throw new BadRequestException(
+        "No users were updated. They may already be in the target role or do not exist.",
+      );
+    }
+
+    // 4. Broadcast a SINGLE Kafka event for the entire batch update
+    const batchUpdateEvent: BaseEvent<any> = {
+      eventId: uuidv7(),
+      eventType: "identity.batch_users.updated",
+      eventVersion: "1.0",
+      timestamp: new Date().toISOString(),
+      producer: "identity-service",
+      correlationId: correlationId,
+      actorId: adminId,
+      data: {
+        count: result.count,
+        users: result,
+      },
+    };
+    await publishEvent("identity.user.events", batchUpdateEvent);
+
+    return {
+      message: "Role updated successfully",
+      affectedCount: result.count,
+    };
   }
 }
