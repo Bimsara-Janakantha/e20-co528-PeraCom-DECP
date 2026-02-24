@@ -1,8 +1,13 @@
-import { Module } from "@nestjs/common";
+import { env } from "./config/validateEnv.config.js";
+import {
+  Module,
+  type MiddlewareConsumer,
+  type NestModule,
+} from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { CorrelationIdMiddleware } from "./config/correlation-id.middleware.js";
 import { AuthModule } from "./auth/auth.module.js";
 import { PrismaModule } from "./prisma/prisma.module.js";
-import { env } from "./config/validateEnv.config.js";
 import { RedisModule } from "./redis/redis.module.js";
 import { PresenceModule } from "./presence/presence.module.js";
 import { UsersModule } from "./users/users.module.js";
@@ -21,4 +26,8 @@ import { UsersModule } from "./users/users.module.js";
     UsersModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumers: MiddlewareConsumer) {
+    consumers.apply(CorrelationIdMiddleware).forRoutes("*");
+  }
+}
