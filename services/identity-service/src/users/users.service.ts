@@ -14,6 +14,7 @@ import type {
   UpdateRolesDto,
   UpdateUserAdminDto,
 } from "./dto/update-admin.dto.js";
+import type { QueryUsersDto } from "./dto/query-users.dto.js";
 
 @Injectable()
 export class UsersService {
@@ -50,6 +51,14 @@ export class UsersService {
           last_name: data.last_name.trim(),
           role: data.role || "STUDENT",
         },
+        select: {
+          id: true,
+          email: true,
+          reg_number: true,
+          first_name: true,
+          last_name: true,
+          role: true,
+        },
       });
     }
 
@@ -64,6 +73,14 @@ export class UsersService {
           last_name: data.last_name.trim(),
           reg_number: data.email.split("@")[0] || "",
           role: data.role || "STUDENT",
+        },
+        select: {
+          id: true,
+          email: true,
+          reg_number: true,
+          first_name: true,
+          last_name: true,
+          role: true,
         },
       });
     }
@@ -88,7 +105,7 @@ export class UsersService {
 
     await publishEvent("identity.user.events", userCreatedEvent);
 
-    return { status: "user_created" };
+    return { status: "user_created", user: newUser };
   }
 
   // ==========================================
@@ -232,6 +249,13 @@ export class UsersService {
     const updatedUser = await this.prisma.user.update({
       where: { id: userId, is_active: true },
       data: { is_active: false },
+      select: {
+        id: true,
+        email: true,
+        first_name: true,
+        last_name: true,
+        role: true,
+      },
     });
 
     console.log(`Attempted to suspend user ${userId}. Result:`, updatedUser);
@@ -385,6 +409,14 @@ export class UsersService {
     const updatedUser = await this.prisma.user.update({
       where: { id: userId, is_active: true },
       data: userData,
+      select: {
+        id: true,
+        email: true,
+        reg_number: true,
+        first_name: true,
+        last_name: true,
+        role: true,
+      },
     });
 
     // 4. If user doesn't exist, throw an error
@@ -408,7 +440,7 @@ export class UsersService {
     };
     await publishEvent("identity.user.events", userUpdatedEvent);
 
-    return updatedUser;
+    return { message: "User updated successfully", user: updatedUser };
   }
 
   // ======================================
@@ -461,5 +493,137 @@ export class UsersService {
       message: "Role updated successfully",
       affectedCount: result.count,
     };
+  }
+
+  // ==========================================
+  // ADMIN DIRECTORY (PAGINATED)
+  // ==========================================
+  async getAdminUsers(
+    adminId: string,
+    correlationId: string,
+    query: QueryUsersDto,
+  ) {
+    const page = Number(query.page) || 1;
+    const limit = Number(query.limit) || 20;
+
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    // 1. Search
+    if (query.search) {
+      where.OR = [
+        { email: { contains: query.search, mode: "insensitive" } },
+        { reg_number: { contains: query.search, mode: "insensitive" } },
+        { first_name: { contains: query.search, mode: "insensitive" } },
+        { last_name: { contains: query.search, mode: "insensitive" } },
+      ];
+    }
+
+    // 2. Role filter
+    if (query.role) {
+      where.role = query.role;
+    }
+
+    // 3. Only active users
+    where.is_active = true;
+
+    // 4. Fetch users with pagination and total count in a single transaction
+    const [users, total] = await this.prisma.$transaction([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { created_at: "desc" },
+
+        // ⚡ LIGHTWEIGHT SELECT
+        select: {
+          id: true,
+          first_name: true,
+          last_name: true,
+          email: true,
+          role: true,
+          reg_number: true,
+        },
+      }),
+
+      this.prisma.user.count({ where }),
+    ]);
+
+    // 5. Kafka event for admin user list retrieval (for analytics, monitoring, etc.)
+    const userListRetrievedEvent: BaseEvent<any> = {
+      eventId: uuidv7(),
+      eventType: "identity.user_list.retrieved",
+      eventVersion: "1.0",
+      timestamp: new Date().toISOString(),
+      producer: "identity-service",
+      correlationId: correlationId,
+      actorId: adminId,
+      data: {
+        count: total,
+        users: users.map((u) => u.id),
+      },
+    };
+
+    await publishEvent("identity.user.events", userListRetrievedEvent);
+
+    // 6. Return paginated response
+    return {
+      data: users,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // ==========================================
+  // PUBLIC PROFILE VIEW
+  // ==========================================
+  async getPublicProfile(
+    actorId: string,
+    correlationId: string,
+    userId: string,
+  ) {
+    // 1. Fetch the user's public profile (only if active)
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId, is_active: true },
+      select: {
+        id: true,
+        first_name: true,
+        middle_name: true,
+        last_name: true,
+        residence: true,
+        profile_pic: true,
+        header_img: true,
+        headline: true,
+        bio: true,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException("User not found");
+    }
+
+    // 2. Broadcast a Kafka event for public profile view (for analytics, monitoring, etc.)
+    const profileViewedEvent: BaseEvent<any> = {
+      eventId: uuidv7(),
+      eventType: "identity.user_profile.viewed",
+      eventVersion: "1.0",
+      timestamp: new Date().toISOString(),
+      producer: "identity-service",
+      correlationId: correlationId,
+      actorId: actorId,
+      data: {
+        userId: user.id,
+        viewedAt: new Date().toISOString(),
+      },
+    };
+
+    await publishEvent("identity.user.events", profileViewedEvent);
+
+    return user;
   }
 }

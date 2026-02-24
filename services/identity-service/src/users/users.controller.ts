@@ -5,6 +5,8 @@ import {
   UseGuards,
   Patch,
   Param,
+  Get,
+  Query,
 } from "@nestjs/common";
 import { UsersService } from "./users.service.js";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard.js";
@@ -20,6 +22,7 @@ import type {
   UpdateRolesDto,
   UpdateUserAdminDto,
 } from "./dto/update-admin.dto.js";
+import type { QueryUsersDto } from "./dto/query-users.dto.js";
 
 @Controller("users")
 export class UsersController {
@@ -128,5 +131,28 @@ export class UsersController {
     @Body() payload: UpdateRolesDto,
   ) {
     return this.usersService.updateUserRoles(admin, correlationId, payload);
+  }
+
+  // GET /users
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  @Get()
+  getUsers(
+    @ActorId() adminId: string,
+    @CorrelationId() correlationId: string,
+    @Query() query: QueryUsersDto,
+  ) {
+    return this.usersService.getAdminUsers(adminId, correlationId, query);
+  }
+
+  // GET /users/:id
+  @UseGuards(JwtAuthGuard)
+  @Get(":id")
+  getPublicProfile(
+    @ActorId() actorId: string,
+    @CorrelationId() correlationId: string,
+    @Param("id") id: string,
+  ) {
+    return this.usersService.getPublicProfile(actorId, correlationId, id);
   }
 }
