@@ -32,23 +32,41 @@ export class UsersService {
       where: { email: data.email.trim().toLowerCase() },
     });
 
-    // 2. If email exists, throw an error
+    let newUser;
     if (existing) {
-      console.log("Email already exists:", data.email);
-      throw new ConflictException("Email already exists");
+      // 2. If email exists, throw an error
+      if (existing.is_active) {
+        console.log("Active user with email already exists:", data.email);
+        throw new ConflictException("Email already exists");
+      }
+
+      // 3. If the existing user is not active, we can choose to reactivate and update their info instead of creating a new record
+      console.log("Deactivated user. Reactive account: ", data.email);
+      newUser = await this.prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          is_active: true,
+          first_name: data.first_name.trim(),
+          last_name: data.last_name.trim(),
+          role: data.role || "STUDENT",
+        },
+      });
     }
 
-    // 3. Create the user in the database
-    const newUser = await this.prisma.user.create({
-      data: {
-        id: uuidv7(),
-        email: data.email.trim().toLowerCase(),
-        first_name: data.first_name.trim(),
-        last_name: data.last_name.trim(),
-        reg_number: data.email.split("@")[0] || "",
-        role: data.role || "STUDENT",
-      },
-    });
+    // 4. No user found with the email, proceed to create a new one
+    else {
+      console.log("No existing users. Safe to proceed: ", data.email);
+      newUser = await this.prisma.user.create({
+        data: {
+          id: uuidv7(),
+          email: data.email.trim().toLowerCase(),
+          first_name: data.first_name.trim(),
+          last_name: data.last_name.trim(),
+          reg_number: data.email.split("@")[0] || "",
+          role: data.role || "STUDENT",
+        },
+      });
+    }
 
     // 6. Broadcast the event so other services can prepare
     const userCreatedEvent: BaseEvent<any> = {
