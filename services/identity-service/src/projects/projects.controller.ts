@@ -57,11 +57,12 @@ export class ProjectsController {
 
   // GET /projects
   @UseGuards(JwtAuthGuard)
-  @Get()
+  @Get(":id")
   getAllProjects(
     @ActorId() actorId: string,
     @CorrelationId() correlationId: string,
+    @Param("id") userId: string,
   ) {
-    return this.projectsService.viewProjects(actorId, correlationId);
+    return this.projectsService.viewProjects(actorId, correlationId, userId);
   }
 }

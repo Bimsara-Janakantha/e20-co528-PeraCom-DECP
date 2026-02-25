@@ -16,7 +16,7 @@ export class ProjectsService {
   // ==========================================
   // VIEW ALL PROJECTS FOR USER
   // ==========================================
-  async viewProjects(userId: string, correlationId: string) {
+  async viewProjects(actorId: string, correlationId: string, userId: string) {
     // 1. Fetch all projects for the user, ordered by creation date (newest first)
     const projects = await this.prisma.project.findMany({
       where: { user_id: userId },
@@ -32,7 +32,7 @@ export class ProjectsService {
         timestamp: new Date().toISOString(),
         producer: "identity-service",
         correlationId: correlationId,
-        actorId: userId,
+        actorId: actorId,
         data: {
           user_id: userId,
           count: projects.length,

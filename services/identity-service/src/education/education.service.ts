@@ -19,7 +19,7 @@ export class EducationService {
   // ==========================================
   // VIEW ALL EDUCATION FOR USER
   // ==========================================
-  async viewEducation(userId: string, correlationId: string) {
+  async viewEducation(actorId: string, correlationId: string, userId: string) {
     // 1. Fetch all education for the user, ordered by creation date (newest first)
     const educations = await this.prisma.education.findMany({
       where: { user_id: userId },
@@ -35,7 +35,7 @@ export class EducationService {
         timestamp: new Date().toISOString(),
         producer: "identity-service",
         correlationId: correlationId,
-        actorId: userId,
+        actorId: actorId,
         data: {
           user_id: userId,
           count: educations.length,

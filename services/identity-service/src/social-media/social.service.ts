@@ -17,6 +17,43 @@ export class SocialService {
   constructor(private prisma: PrismaService) {}
 
   // ==========================================
+  // VIEW ALL SOCIAL MEDIA LINKS FOR USER
+  // ==========================================
+  async viewSocialLinks(
+    actorId: string,
+    correlationId: string,
+    userId: string,
+  ) {
+    // 1. Fetch all social links for the user, ordered by creation date (newest first)
+    const links = await this.prisma.socialLink.findMany({
+      where: { user_id: userId },
+      orderBy: { created_at: "desc" },
+    });
+
+    // 2. Create kafka event for viewing social links (for logging/analytics purposes)
+    const viewSocialLinksEvent: BaseEvent<any> = {
+      eventId: uuidv7(),
+      eventType: "identity.social_links.viewed",
+      eventVersion: "1.0",
+      timestamp: new Date().toISOString(),
+      producer: "identity-service",
+      correlationId: correlationId,
+      actorId: actorId,
+      data: {
+        user_id: userId,
+        count: links.length,
+      },
+    };
+    try {
+      await publishEvent("identity.events", viewSocialLinksEvent);
+    } catch (error) {
+      console.error("Failed to publish social_links.viewed event:", error);
+    }
+
+    return { status: "ok", socialLinks: links };
+  }
+
+  // ==========================================
   // CREATE SOCIAL MEDIA LINK
   // ==========================================
   async createSocialLink(
@@ -185,38 +222,5 @@ export class SocialService {
 
     // 5. Return success response
     return { status: "social_link_deleted", id: deletedLink.id };
-  }
-
-  // ==========================================
-  // VIEW ALL SOCIAL MEDIA LINKS FOR USER
-  // ==========================================
-  async viewSocialLinks(userId: string, correlationId: string) {
-    // 1. Fetch all social links for the user, ordered by creation date (newest first)
-    const links = await this.prisma.socialLink.findMany({
-      where: { user_id: userId },
-      orderBy: { created_at: "desc" },
-    });
-
-    // 2. Create kafka event for viewing social links (for logging/analytics purposes)
-    const viewSocialLinksEvent: BaseEvent<any> = {
-      eventId: uuidv7(),
-      eventType: "identity.social_links.viewed",
-      eventVersion: "1.0",
-      timestamp: new Date().toISOString(),
-      producer: "identity-service",
-      correlationId: correlationId,
-      actorId: userId,
-      data: {
-        user_id: userId,
-        count: links.length,
-      },
-    };
-    try {
-      await publishEvent("identity.events", viewSocialLinksEvent);
-    } catch (error) {
-      console.error("Failed to publish social_links.viewed event:", error);
-    }
-
-    return { status: "ok", socialLinks: links };
   }
 }

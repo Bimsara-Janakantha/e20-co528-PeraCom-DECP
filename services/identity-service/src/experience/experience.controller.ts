@@ -66,13 +66,18 @@ export class ExperienceController {
     );
   }
 
-  // GET /experience
+  // GET /experience/:id
   @UseGuards(JwtAuthGuard)
-  @Get()
+  @Get(":id")
   getAllExperience(
     @ActorId() actorId: string,
     @CorrelationId() correlationId: string,
+    @Param("id") userId: string,
   ) {
-    return this.experienceService.viewExperience(actorId, correlationId);
+    return this.experienceService.viewExperience(
+      actorId,
+      correlationId,
+      userId,
+    );
   }
 }

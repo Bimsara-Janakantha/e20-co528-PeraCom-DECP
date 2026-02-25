@@ -54,13 +54,14 @@ export class SocialController {
     return this.socialService.deleteSocialLink(actorId, correlationId, linkId);
   }
 
-  // GET /social
+  // GET /social/:id
   @UseGuards(JwtAuthGuard)
-  @Get()
+  @Get(":id")
   viewSocialLinks(
     @ActorId() actorId: string,
     @CorrelationId() correlationId: string,
+    @Param("id") userId: string,
   ) {
-    return this.socialService.viewSocialLinks(actorId, correlationId);
+    return this.socialService.viewSocialLinks(actorId, correlationId, userId);
   }
 }

@@ -19,7 +19,7 @@ export class ExperienceService {
   // ==========================================
   // VIEW ALL EXPERIENCE FOR USER
   // ==========================================
-  async viewExperience(userId: string, correlationId: string) {
+  async viewExperience(actorId: string, correlationId: string, userId: string) {
     // 1. Fetch all experience for the user, ordered by creation date (newest first)
     const experiences = await this.prisma.experience.findMany({
       where: { user_id: userId },
@@ -35,7 +35,7 @@ export class ExperienceService {
         timestamp: new Date().toISOString(),
         producer: "identity-service",
         correlationId: correlationId,
-        actorId: userId,
+        actorId: actorId,
         data: {
           user_id: userId,
           count: experiences.length,

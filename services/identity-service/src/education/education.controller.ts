@@ -66,13 +66,14 @@ export class EducationController {
     );
   }
 
-  // GET /education
+  // GET /education/:id
   @UseGuards(JwtAuthGuard)
-  @Get()
+  @Get(":id")
   getAllEducation(
     @ActorId() actorId: string,
     @CorrelationId() correlationId: string,
+    @Param("id") userId: string,
   ) {
-    return this.educationService.viewEducation(actorId, correlationId);
+    return this.educationService.viewEducation(actorId, correlationId, userId);
   }
 }
