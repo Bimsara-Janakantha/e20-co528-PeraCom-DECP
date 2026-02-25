@@ -103,7 +103,7 @@ export class UsersService {
       },
     };
 
-    await publishEvent("identity.user.events", userCreatedEvent);
+    await publishEvent("identity.events", userCreatedEvent);
 
     return { status: "user_created", user: newUser };
   }
@@ -226,7 +226,7 @@ export class UsersService {
       },
     };
 
-    await publishEvent("identity.user.events", batchCreatedEvent);
+    await publishEvent("identity.events", batchCreatedEvent);
 
     // 6. Return the result
     return { status: "Users created", count: created.count };
@@ -281,7 +281,7 @@ export class UsersService {
         last_name: updatedUser.last_name,
       },
     };
-    await publishEvent("identity.user.events", userSuspendedEvent);
+    await publishEvent("identity.events", userSuspendedEvent);
 
     // 5. Return the result
     return {
@@ -334,7 +334,7 @@ export class UsersService {
         users: result,
       },
     };
-    await publishEvent("identity.user.events", batchSuspendedEvent);
+    await publishEvent("identity.events", batchSuspendedEvent);
 
     return {
       message: "Users suspended successfully",
@@ -383,7 +383,7 @@ export class UsersService {
         email: updatedUser.email,
       },
     };
-    await publishEvent("identity.user.events", profileUpdatedEvent);
+    await publishEvent("identity.events", profileUpdatedEvent);
 
     // 5. Return the updated profile
     return updatedUser;
@@ -438,7 +438,7 @@ export class UsersService {
         email: updatedUser.email,
       },
     };
-    await publishEvent("identity.user.events", userUpdatedEvent);
+    await publishEvent("identity.events", userUpdatedEvent);
 
     return { message: "User updated successfully", user: updatedUser };
   }
@@ -487,7 +487,7 @@ export class UsersService {
         users: result,
       },
     };
-    await publishEvent("identity.user.events", batchUpdateEvent);
+    await publishEvent("identity.events", batchUpdateEvent);
 
     return {
       message: "Role updated successfully",
@@ -565,7 +565,7 @@ export class UsersService {
       },
     };
 
-    await publishEvent("identity.user.events", userListRetrievedEvent);
+    await publishEvent("identity.events", userListRetrievedEvent);
 
     // 6. Return paginated response
     return {
@@ -622,7 +622,7 @@ export class UsersService {
       },
     };
 
-    await publishEvent("identity.user.events", profileViewedEvent);
+    await publishEvent("identity.events", profileViewedEvent);
 
     return user;
   }
@@ -669,7 +669,7 @@ export class UsersService {
       },
     };
 
-    await publishEvent("identity.user.events", profileViewedEvent);
+    await publishEvent("identity.events", profileViewedEvent);
 
     // 4. Return the user's own profile
     return user;
