@@ -103,6 +103,18 @@ export class UsersController {
     return this.usersService.updateProfile(actor, correlationId, payload);
   }
 
+  // PATCH /users/roles
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  @Patch("roles")
+  updateRoles(
+    @ActorId() admin: string,
+    @CorrelationId() correlationId: string,
+    @Body() payload: UpdateRolesDto,
+  ) {
+    return this.usersService.updateUserRoles(admin, correlationId, payload);
+  }
+
   // PATCH /users/:id
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("ADMIN")
@@ -119,18 +131,6 @@ export class UsersController {
       userId,
       userData,
     );
-  }
-
-  // PATCH /users/roles
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("ADMIN")
-  @Patch("roles")
-  updateRoles(
-    @ActorId() admin: string,
-    @CorrelationId() correlationId: string,
-    @Body() payload: UpdateRolesDto,
-  ) {
-    return this.usersService.updateUserRoles(admin, correlationId, payload);
   }
 
   // GET /users/me
