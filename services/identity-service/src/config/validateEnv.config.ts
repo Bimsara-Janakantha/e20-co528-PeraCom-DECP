@@ -2,6 +2,11 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 function getValidatedEnv() {
+  if (process.env.ENVIRONMENT === "build") {
+    console.log("Skipping environment validation for build phase...");
+    return {} as any;
+  }
+
   // 1. Define strictly what is required to boot the app
   const requiredVars = [
     "DATABASE_URL",
@@ -17,6 +22,7 @@ function getValidatedEnv() {
   const missing = requiredVars.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
+    console.log("Current OS Env Keys:", Object.keys(process.env));
     throw new Error(
       `Missing required environment variables: ${missing.join(", ")}`,
     );

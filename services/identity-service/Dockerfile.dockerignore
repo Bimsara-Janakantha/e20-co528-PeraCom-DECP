@@ -6,8 +6,7 @@
 
 # Environment files (for secrets, use env_file in compose)
 **/.env
-**/.env.local
-**/.env.*.local
+**/*.env.*
 
 # Git files
 **/.git

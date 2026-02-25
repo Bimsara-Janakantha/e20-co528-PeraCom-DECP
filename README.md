@@ -18,3 +18,29 @@ PeraCom's Department Engagement & Career Platform (DECP) is a comprehensive web 
 - **Notifications**: Stay updated with the latest events, job postings, and mentorship opportunities through real-time notifications.
 
 ## Technologies Used
+
+## How to Run
+
+1. Clone the repository:
+
+   ```bash
+   git clone https://github.com/cepdnaclk/PeraCom-DECP.git
+   ```
+
+2. Navigate to the project directory:
+
+   ```bash
+    cd PeraCom-DECP
+   ```
+
+3. Start the application using Docker Compose:
+
+   ```bash
+    docker-compose up --build
+   ```
+
+   > Note: For development, you may use the command
+
+   ```bash
+   docker-compose up --build <service-name>
+   ```

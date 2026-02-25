@@ -29,6 +29,10 @@ RUN npm install
 # Copy the rest of the application code to the working directory
 COPY services/identity-service ./
 
+# Set environment variables to skip validation and provide dummy values for build phase
+ENV ENVIRONMENT="build"
+ENV DATABASE_URL="dummy-url"
+
 # Generate the Prisma Client tailored for Linux BEFORE building NestJS
 RUN npx prisma generate
 

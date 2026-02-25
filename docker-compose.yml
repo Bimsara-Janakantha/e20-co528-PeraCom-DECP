@@ -244,7 +244,7 @@ services:
       context: .
       dockerfile: ./services/identity-service/Dockerfile
     env_file:
-      - ./services/identity-service/.env
+      - ./services/identity-service/.env.prod
     depends_on:
       - postgres
       - kafka
@@ -258,7 +258,7 @@ services:
       context: .
       dockerfile: ./services/engagement-service/Dockerfile
     env_file:
-      - ./services/engagement-service/.env
+      - ./services/engagement-service/.env.prod
     depends_on:
       - mongo
       - kafka
@@ -273,7 +273,7 @@ services:
       context: .
       dockerfile: ./services/message-service/Dockerfile
     env_file:
-      - ./services/message-service/.env
+      - ./services/message-service/.env.prod
     depends_on:
       - mongo
       - kafka
@@ -288,7 +288,7 @@ services:
       context: .
       dockerfile: ./services/notification-service/Dockerfile
     env_file:
-      - ./services/notification-service/.env
+      - ./services/notification-service/.env.prod
     depends_on:
       - kafka
     networks:
@@ -301,7 +301,7 @@ services:
       context: .
       dockerfile: ./services/career-service/Dockerfile
     env_file:
-      - ./services/career-service/.env
+      - ./services/career-service/.env.prod
     depends_on:
       - postgres
       - kafka
@@ -315,7 +315,7 @@ services:
       context: .
       dockerfile: ./services/event-service/Dockerfile
     env_file:
-      - ./services/event-service/.env
+      - ./services/event-service/.env.prod
     depends_on:
       - postgres
       - kafka
@@ -329,7 +329,7 @@ services:
       context: .
       dockerfile: ./services/collaboration-service/Dockerfile
     env_file:
-      - ./services/collaboration-service/.env
+      - ./services/collaboration-service/.env.prod
     depends_on:
       - kafka
       - redis
@@ -343,7 +343,7 @@ services:
       context: .
       dockerfile: ./services/analytics-service/Dockerfile
     env_file:
-      - ./services/analytics-service/.env
+      - ./services/analytics-service/.env.prod
     depends_on:
       - kafka
       - postgres
