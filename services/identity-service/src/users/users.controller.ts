@@ -64,22 +64,10 @@ export class UsersController {
     return this.usersService.createSingleUser(dto, correlationId, adminId);
   }
 
-  // PATCH /users/:id/suspend
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles("ADMIN")
-  @Patch(":id/suspend")
-  suspendUser(
-    @Param("id") userId: string,
-    @CorrelationId() correlationId: string,
-    @ActorId() adminId: string,
-  ) {
-    return this.usersService.suspendSingleUser(userId, correlationId, adminId);
-  }
-
   // PATCH /users/bulk/suspend
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("ADMIN")
-  @Patch("bulk-suspend")
+  @Patch("bulk/suspend")
   suspendBulk(
     @Body() dto: BulkSuspendDto,
     @CorrelationId() correlationId: string,
@@ -90,6 +78,18 @@ export class UsersController {
       correlationId,
       adminId,
     );
+  }
+
+  // PATCH /users/:id/suspend
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  @Patch(":id/suspend")
+  suspendUser(
+    @Param("id") userId: string,
+    @CorrelationId() correlationId: string,
+    @ActorId() adminId: string,
+  ) {
+    return this.usersService.suspendSingleUser(userId, correlationId, adminId);
   }
 
   // PATCH /users/me
