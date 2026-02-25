@@ -15,7 +15,7 @@ import type {
   NewPublicationDto,
   UpdatePublicationDto,
 } from "./dto/publication.dto.js";
-import type { PublicationService } from "./publication.service.js";
+import { PublicationService } from "./publication.service.js";
 
 @Controller("publication")
 export class PublicationController {

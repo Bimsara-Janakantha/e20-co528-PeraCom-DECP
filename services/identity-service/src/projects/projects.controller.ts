@@ -11,7 +11,7 @@ import {
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard.js";
 import { CorrelationId } from "../auth/decorators/correlation-id.decorator.js";
 import { ActorId } from "../auth/decorators/actor.decorator.js";
-import type { ProjectsService } from "./projects.service.js";
+import { ProjectsService } from "./projects.service.js";
 import type { NewProjectDto, UpdateProjectDto } from "./dto/projects.dto.js";
 
 @Controller("projects")

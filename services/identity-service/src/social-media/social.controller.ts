@@ -11,7 +11,7 @@ import {
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard.js";
 import { CorrelationId } from "../auth/decorators/correlation-id.decorator.js";
 import { ActorId } from "../auth/decorators/actor.decorator.js";
-import type { SocialService } from "./social.service.js";
+import { SocialService } from "./social.service.js";
 import type {
   CreateSocialLinkDto,
   UpdateSocialLinkDto,
