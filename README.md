@@ -44,3 +44,8 @@ PeraCom's Department Engagement & Career Platform (DECP) is a comprehensive web 
    ```bash
    docker-compose up --build <service-name>
    ```
+
+   ```bash
+   // Example
+   docker-compose up -d postgres mongo redis kafka minio kong prometheus grafana elasticsearch kibana otel-collector
+   ```
