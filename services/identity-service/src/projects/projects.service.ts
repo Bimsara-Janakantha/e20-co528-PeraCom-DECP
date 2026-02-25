@@ -107,6 +107,8 @@ export class ProjectsService {
     } catch (error) {
       console.error("Failed to publish project.created event:", error);
     }
+
+    // 5. Return created project
     return { status: "project_created", project: newProject };
   }
 
