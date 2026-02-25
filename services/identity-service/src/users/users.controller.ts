@@ -133,6 +133,16 @@ export class UsersController {
     return this.usersService.updateUserRoles(admin, correlationId, payload);
   }
 
+  // GET /users/me
+  @UseGuards(JwtAuthGuard)
+  @Get("me")
+  getMyProfile(
+    @ActorId() userId: string,
+    @CorrelationId() correlationId: string,
+  ) {
+    return this.usersService.getMyProfile(userId, correlationId);
+  }
+
   // GET /users/:id
   @UseGuards(JwtAuthGuard)
   @Get(":id")
@@ -142,16 +152,6 @@ export class UsersController {
     @Param("id") id: string,
   ) {
     return this.usersService.getPublicProfile(actorId, correlationId, id);
-  }
-
-  // GET /users/me
-  @UseGuards(JwtAuthGuard)
-  @Get("me")
-  getMyProfile(
-    @ActorId() userId: string,
-    @CorrelationId() correlationId: string,
-  ) {
-    return this.usersService.getMyProfile(userId, correlationId);
   }
 
   // GET /users
