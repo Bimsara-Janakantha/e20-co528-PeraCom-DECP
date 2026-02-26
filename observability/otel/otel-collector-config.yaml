@@ -2,7 +2,9 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: "0.0.0.0:4317" # ✨ The Fix: Listen to the whole Docker network
       http:
+        endpoint: "0.0.0.0:4318" # ✨ The Fix: Listen to the whole Docker network
 
 exporters:
   debug:
@@ -10,6 +12,15 @@ exporters:
 
   prometheus:
     endpoint: "0.0.0.0:8889"
+
+  #otlp_grpc/traces:
+  #  endpoint: "jaeger:4317" # Or jaeger:4317
+  #  tls:
+  #    insecure: true
+
+  elasticsearch:
+    endpoints: ["http://elasticsearch:9200"]
+    traces_index: "traces-otel"
 
 processors:
   batch:
@@ -19,7 +30,8 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [debug]
+      exporters: [debug, elasticsearch]
+      #exporters: [debug, otlp_grpc/traces, elasticsearch]
 
     metrics:
       receivers: [otlp]
