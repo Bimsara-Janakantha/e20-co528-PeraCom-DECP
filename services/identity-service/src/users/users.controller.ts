@@ -140,7 +140,10 @@ export class UsersController {
     @ActorId() userId: string,
     @CorrelationId() correlationId: string,
   ) {
-    return this.usersService.getMyProfile(userId, correlationId);
+    return this.usersService.getMyProfile(
+      userId,
+      correlationId,
+    );
   }
 
   // GET /users/:id

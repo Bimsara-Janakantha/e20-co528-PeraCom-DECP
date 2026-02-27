@@ -274,7 +274,7 @@ services:
     networks:
       - decp-network
     expose:
-      - "3000"
+      - "4000"
 
   # engagement-service:
   #   container_name: decp-engagement-service
@@ -290,7 +290,7 @@ services:
   #   networks:
   #     - decp-network
   #   expose:
-  #     - "3001"
+  #     - "4001"
 
   # message-service:
   #   container_name: decp-message-service
@@ -306,7 +306,7 @@ services:
   #   networks:
   #     - decp-network
   #   expose:
-  #     - "3002"
+  #     - "4002"
 
   # notification-service:
   #   container_name: decp-notification-service
@@ -320,7 +320,7 @@ services:
   #   networks:
   #     - decp-network
   #   expose:
-  #     - "3003"
+  #     - "4003"
 
   # career-service:
   #   container_name: decp-career-service
@@ -335,7 +335,7 @@ services:
   #   networks:
   #     - decp-network
   #   expose:
-  #     - "3004"
+  #     - "4004"
 
   # event-service:
   #   container_name: decp-event-service
@@ -350,7 +350,7 @@ services:
   #   networks:
   #     - decp-network
   #   expose:
-  #     - "3005"
+  #     - "4005"
 
   # collaboration-service:
   #   container_name: decp-collab-service
@@ -365,7 +365,7 @@ services:
   #   networks:
   #     - decp-network
   #   expose:
-  #     - "3006"
+  #     - "4006"
 
   # analytics-service:
   #   container_name: decp-analytics-service
@@ -380,4 +380,4 @@ services:
   #   networks:
   #     - decp-network
   #   expose:
-  #     - "3007"
+  #     - "4007"
