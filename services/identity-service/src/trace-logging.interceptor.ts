@@ -24,7 +24,8 @@ export class TraceLoggingInterceptor implements NestInterceptor {
 
     // 2. Grab the Correlation ID from Kong (assuming Kong passes it in the header)
     // Adjust the header name if Kong uses something else like 'correlation-id'
-    const correlationId = req.headers["x-correlation-id"] || "no-correlation";
+    const correlationId =
+      req.headers["x-correlation-id"] || req.correlationId || "no-correlation";
 
     const now = Date.now();
 
