@@ -6,11 +6,15 @@ import {
   UseInterceptors,
   UseGuards,
   BadRequestException,
+  Param,
+  Get,
+  ParseIntPipe,
+  Query,
+  DefaultValuePipe,
 } from "@nestjs/common";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { PostsService } from "./posts.service.js";
 import { CreatePostDto } from "./dto/create-post.dto.js";
-import { RolesGuard } from "../auth/guards/roles.guard.js";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard.js";
 import { ActorId } from "../auth/decorators/actor.decorator.js";
 import { CorrelationId } from "../auth/decorators/correlation-id.decorator.js";
@@ -20,7 +24,8 @@ import multer from "multer";
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  // POST /posts
+  @UseGuards(JwtAuthGuard)
   @Post()
   @UseInterceptors(
     FilesInterceptor("media", 10, {
@@ -51,5 +56,29 @@ export class PostsController {
       createPostDto,
       files,
     );
+  }
+
+  // GET /posts/:id
+  @UseGuards(JwtAuthGuard)
+  @Get(":id")
+  async getPost(
+    @ActorId() actorId: string,
+    @CorrelationId() correlationId: string,
+    @Param("id") postId: string,
+  ) {
+    return this.postsService.getPostById(actorId, correlationId, postId);
+  }
+
+  // GET /posts?cursor=xxx&limit=10
+  @UseGuards(JwtAuthGuard)
+  @Get()
+  async getFeed(
+    @ActorId() actorId: string,
+    @CorrelationId() correlationId: string,
+    @Query("cursor") cursor?: string,
+    @Query("limit", new DefaultValuePipe(10), ParseIntPipe)
+    limit?: number,
+  ) {
+    return this.postsService.getFeed(actorId, correlationId, cursor, limit);
   }
 }
