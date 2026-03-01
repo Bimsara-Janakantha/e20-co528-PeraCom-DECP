@@ -1,7 +1,14 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document } from "mongoose";
 
-// Will handle media attachments in the future, but for now we can keep it simple with just text content.
+export enum ReactionType {
+  LIKE = "LIKE",
+  CELEBRATE = "CELEBRATE",
+  SUPPORT = "SUPPORT", // LinkedIn's "Care"
+  LOVE = "LOVE",
+  HAHA = "HAHA",
+  SAD = "SAD",
+}
 
 export type PostDocument = Post & Document;
 
@@ -20,7 +27,20 @@ export class Post {
   video!: string | null;
 
   @Prop({ default: 0 })
-  likesCount!: number;
+  totalReactions!: number;
+
+  @Prop({
+    type: Object,
+    default: {
+      LIKE: 0,
+      CELEBRATE: 0,
+      SUPPORT: 0,
+      LOVE: 0,
+      HAHA: 0,
+      SAD: 0,
+    },
+  })
+  reactionCounts!: Record<ReactionType, number>;
 
   @Prop({ default: 0 })
   commentsCount!: number;

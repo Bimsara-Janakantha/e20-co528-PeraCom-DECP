@@ -1,9 +1,9 @@
 import { Module } from "@nestjs/common";
 import { MongooseModule } from "@nestjs/mongoose";
+import { makeCounterProvider } from "@willsoto/nestjs-prometheus";
 import { PostsController } from "./posts.controller.js";
 import { PostsService } from "./posts.service.js";
 import { Post, PostSchema } from "./schemas/post.schema.js";
-import { makeCounterProvider } from "@willsoto/nestjs-prometheus";
 import { MinioService } from "../minio/minio.service.js";
 
 @Module({

@@ -14,6 +14,7 @@ import { MetricsModule } from "./metrics/metrics.module.js";
 import { LoggerModule } from "nestjs-pino";
 import { MongooseModule } from "@nestjs/mongoose";
 import { PostsModule } from "./posts/posts.module.js";
+import { ReactionsModule } from "./Reaction/reaction.module.js";
 
 @Module({
   imports: [
@@ -23,12 +24,14 @@ import { PostsModule } from "./posts/posts.module.js";
       load: [() => env],
     }),
 
+    // Sets up structured logging with Pino
     LoggerModule.forRoot({
       pinoHttp: {
         level: env.LOG_LEVEL,
       },
     }),
 
+    // Connects to MongoDB using Mongoose
     MongooseModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -36,9 +39,11 @@ import { PostsModule } from "./posts/posts.module.js";
       }),
     }),
 
+    // Application modules
     HealthModule,
     MetricsModule,
     PostsModule,
+    ReactionsModule,
   ],
   providers: [JwtStrategy, JwtAuthGuard, RolesGuard],
   exports: [JwtAuthGuard, RolesGuard],
