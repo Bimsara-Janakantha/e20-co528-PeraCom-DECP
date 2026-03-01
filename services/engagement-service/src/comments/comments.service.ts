@@ -6,7 +6,8 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectConnection, InjectModel } from "@nestjs/mongoose";
-import { Connection, Model, Types } from "mongoose";
+import { Types } from "mongoose";
+import type { Connection, Model } from "mongoose";
 import { Comment, type CommentDocument } from "./schemas/comment.schema.js";
 import { Post, type PostDocument } from "../posts/schemas/post.schema.js";
 import { InjectMetric } from "@willsoto/nestjs-prometheus/dist/injector.js";
@@ -150,14 +151,11 @@ export class CommentsService {
       .exec();
 
     // 5. Determine the next cursor
-    const nextCursor =
-      comments.length > safeLimit
-        ? String(comments[comments.length - 2]?._id ?? "")
-        : null;
+    let nextCursor = null;
 
-    // 6. Remove the extra comment if we fetched one for the cursor check
     if (comments.length > safeLimit) {
       comments.pop(); // Remove the extra comment we fetched for the cursor check
+      nextCursor = comments[comments.length - 1]?._id.toString();
     }
 
     // 7 Increment Prometheus metric for comments retrieval
@@ -244,8 +242,8 @@ export class CommentsService {
         correlationId: correlationId,
         actorId: actorId,
         data: {
-          post_id: deletedComment.postId,
-          comment_id: deletedComment._id,
+          post_id: deletedComment.postId.toString(),
+          comment_id: deletedComment._id.toString(),
           deleted_by_admin: false,
         },
       };
@@ -319,8 +317,8 @@ export class CommentsService {
         correlationId: correlationId,
         actorId: actorId,
         data: {
-          post_id: deletedComment.postId,
-          comment_id: deletedComment._id,
+          post_id: deletedComment.postId.toString(),
+          comment_id: deletedComment._id.toString(),
           deleted_by_admin: true,
         },
       };
