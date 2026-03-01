@@ -2,11 +2,6 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 function getValidatedEnv() {
-  if (process.env.ENVIRONMENT === "build") {
-    console.log("Skipping environment validation for build phase...");
-    return {} as any;
-  }
-
   // 1. Define strictly what is required to boot the app
   const requiredVars = [
     "JWT_SECRET",
@@ -21,6 +16,7 @@ function getValidatedEnv() {
     "MINIO_PUBLIC_URL",
     "EDIT_POST_TIME_LIMIT_MINUTES",
     "MAX_FILE_SIZE_MB",
+    "ENVIRONMENT",
   ] as const;
   const missing = requiredVars.filter((key) => !process.env[key]);
 
@@ -51,6 +47,7 @@ function getValidatedEnv() {
       10,
     ),
     MAX_FILE_SIZE_MB: parseInt(process.env.MAX_FILE_SIZE_MB as string, 10),
+    ENVIRONMENT: process.env.ENVIRONMENT as string,
   };
 }
 
