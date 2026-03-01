@@ -14,8 +14,9 @@ import { MetricsModule } from "./metrics/metrics.module.js";
 import { LoggerModule } from "nestjs-pino";
 import { MongooseModule } from "@nestjs/mongoose";
 import { PostsModule } from "./posts/posts.module.js";
-import { ReactionsModule } from "./Reaction/reaction.module.js";
+import { ReactionsModule } from "./reaction/reaction.module.js";
 import { CommentsModule } from "./comments/comments.module.js";
+import { WorkersModule } from "./workers/workers.module.js";
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { CommentsModule } from "./comments/comments.module.js";
     PostsModule,
     ReactionsModule,
     CommentsModule,
+    WorkersModule,
   ],
   providers: [JwtStrategy, JwtAuthGuard, RolesGuard],
   exports: [JwtAuthGuard, RolesGuard],
