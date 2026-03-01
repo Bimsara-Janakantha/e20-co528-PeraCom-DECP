@@ -301,7 +301,7 @@ services:
     env_file:
       - ./services/career-service/.env.prod
     depends_on:
-      - postgres
+      - mongo
       - kafka
     networks:
       - decp-network
