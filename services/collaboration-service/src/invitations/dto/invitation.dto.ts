@@ -21,5 +21,5 @@ export class RespondInvitationDto {
 
   @IsNotEmpty()
   @IsEnum(["ACCEPTED", "DECLINED"])
-  status!: "ACCEPTED" | "DECLINED";
+  action!: "ACCEPTED" | "DECLINED";
 }

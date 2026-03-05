@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -24,6 +25,10 @@ import { publishEvent, type BaseEvent } from "@decp/event-bus";
 import { v7 as uuidv7 } from "uuid";
 import { PinoLogger, InjectPinoLogger } from "nestjs-pino";
 import type { UpdateProjectDto } from "./dto/update-project.dto.js";
+import {
+  InvitationStatus,
+  ProjectInvitation,
+} from "../invitations/schemas/project-invitation.schema.js";
 
 @Injectable()
 export class ProjectsService {
@@ -33,6 +38,9 @@ export class ProjectsService {
 
     @InjectModel(ProjectMember.name)
     private readonly memberModel: Model<ProjectMemberDocument>,
+
+    @InjectModel(ProjectInvitation.name)
+    private readonly inviteModel: Model<ProjectInvitation>,
 
     @InjectConnection() private readonly connection: Connection, // ✨ Required for Transactions
 
@@ -503,6 +511,17 @@ export class ProjectsService {
       throw new NotFoundException("Project not found");
     }
 
+    // 4. Invitation Status Check
+    const pendingInvite = await this.inviteModel
+      .findOne({
+        projectId: new Types.ObjectId(projectId),
+        inviteeId: actorId,
+        status: InvitationStatus.PENDING,
+      })
+      .select("_id type")
+      .lean()
+      .exec();
+
     // Kafka Event Emission (Project Viewed)
     const projectViewedEvent: BaseEvent<any> = {
       eventId: uuidv7(),
@@ -541,7 +560,12 @@ export class ProjectsService {
       // ✨ Frontend Context: Crucial for UI rendering!
       // If myRole is null, the frontend knows to show a "Join Project" button.
       // If myRole is 'OWNER', the frontend knows to show the "Settings" and "Delete" buttons.
-      myRole: memberRecord ? memberRecord.role : null,
+      // If
+      myRole: ()=>{
+        if (memberRecord) return memberRecord.role;
+        if (pendingInvite) return `PENDING_${pendingInvite.type}`;
+        return null;
+      },
     };
   }
 }

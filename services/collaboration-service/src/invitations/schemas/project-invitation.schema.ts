@@ -4,6 +4,11 @@ import { MemberRole } from "../../members/schemas/project-member.schema.js";
 
 export type ProjectInvitationDocument = ProjectInvitation & Document;
 
+export enum InvitationType {
+  OUTBOUND_INVITE = "OUTBOUND_INVITE",
+  INBOUND_REQUEST = "INBOUND_REQUEST",
+}
+
 export enum InvitationStatus {
   PENDING = "PENDING",
   ACCEPTED = "ACCEPTED",
@@ -21,13 +26,16 @@ export class ProjectInvitation {
 
   // We support internal invites
   @Prop({ required: true, index: true })
-  inviteeId!: string; //
+  inviteeId!: string;
 
   @Prop({ required: true, index: true })
-  inviteeEmail!: string; //
+  inviteeEmail!: string;
 
   @Prop({ type: String, enum: MemberRole, required: true })
   role!: MemberRole;
+
+  @Prop({ type: String, enum: InvitationType, required: true })
+  type!: InvitationType;
 
   @Prop({
     type: String,
@@ -48,7 +56,7 @@ export const ProjectInvitationSchema =
 
 // Idempotency: A user cannot have multiple PENDING invites to the same project
 ProjectInvitationSchema.index(
-  { projectId: 1, inviteeId: 1, inviteeEmail: 1, status: 1 },
+  { projectId: 1, inviteeId: 1, status: 1 },
   {
     unique: true,
     partialFilterExpression: { status: InvitationStatus.PENDING },
