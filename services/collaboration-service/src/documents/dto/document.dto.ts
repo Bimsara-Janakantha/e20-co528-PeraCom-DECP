@@ -9,10 +9,6 @@ import {
 import { env } from "../../config/validateEnv.config.js";
 
 export class RequestUploadUrlDto {
-  @IsNotEmpty()
-  @IsMongoId()
-  projectId!: string;
-
   @IsString()
   @IsNotEmpty()
   fileName!: string;
@@ -28,10 +24,6 @@ export class RequestUploadUrlDto {
 }
 
 export class ConfirmUploadDto {
-  @IsNotEmpty()
-  @IsMongoId()
-  projectId!: string;
-
   @IsString()
   @IsNotEmpty()
   fileKey!: string; // The key we gave them in step 1
@@ -47,24 +39,4 @@ export class ConfirmUploadDto {
 
   @IsNumber()
   sizeBytes!: number;
-}
-
-export class GetDownloadUrlDto {
-  @IsNotEmpty()
-  @IsMongoId()
-  projectId!: string;
-
-  @IsNotEmpty()
-  @IsMongoId()
-  documentId!: string;
-}
-
-export class DeleteDocumentDto {
-  @IsNotEmpty()
-  @IsMongoId()
-  projectId!: string;
-
-  @IsNotEmpty()
-  @IsMongoId()
-  documentId!: string;
 }

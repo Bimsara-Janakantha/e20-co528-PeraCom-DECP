@@ -14,6 +14,7 @@ import { MetricsModule } from "./metrics/metrics.module.js";
 import { ProjectsModule } from "./projects/projects.module.js";
 import { InvitationsModule } from "./invitations/invitations.module.js";
 import { MembersModule } from "./members/members.module.js";
+import { DocumentsModule } from "./documents/documents.module.js";
 import { LoggerModule } from "nestjs-pino";
 import { MongooseModule } from "@nestjs/mongoose";
 
@@ -57,6 +58,7 @@ import { MongooseModule } from "@nestjs/mongoose";
     ProjectsModule,
     InvitationsModule,
     MembersModule,
+    DocumentsModule,
   ],
   providers: [JwtStrategy, JwtAuthGuard, RolesGuard],
   exports: [JwtAuthGuard, RolesGuard],

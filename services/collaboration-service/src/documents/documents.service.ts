@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   InternalServerErrorException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model, Types } from "mongoose";
@@ -12,14 +13,10 @@ import {
 } from "./schemas/project-document.schema.js";
 import {
   Project,
+  ProjectVisibility,
   type ProjectDocument as ProjDoc,
 } from "../projects/schemas/project.schema.js";
-import {
-  RequestUploadUrlDto,
-  ConfirmUploadDto,
-  GetDownloadUrlDto,
-  DeleteDocumentDto,
-} from "./dto/document.dto.js";
+import { RequestUploadUrlDto, ConfirmUploadDto } from "./dto/document.dto.js";
 import { MinioService } from "../minio/minio.service.js";
 import { publishEvent, type BaseEvent } from "@decp/event-bus";
 import { v7 as uuidv7 } from "uuid";
@@ -45,9 +42,13 @@ export class DocumentsService {
   async generateUploadUrl(
     actorId: string,
     correlationId: string,
+    projectId: string,
     dto: RequestUploadUrlDto,
   ) {
-    const { projectId, fileName, mimeType, sizeBytes } = dto;
+    const { fileName, mimeType, sizeBytes } = dto;
+
+    if (!Types.ObjectId.isValid(projectId))
+      throw new BadRequestException("Invalid project ID");
 
     // Enterprise Security: Block dangerous file types
     const blockedTypes = [
@@ -117,9 +118,13 @@ export class DocumentsService {
   async confirmUpload(
     actorId: string,
     correlationId: string,
+    projectId: string,
     dto: ConfirmUploadDto,
   ) {
-    const { projectId, fileKey, fileName, mimeType, sizeBytes } = dto;
+    const { fileKey, fileName, mimeType, sizeBytes } = dto;
+
+    if (!Types.ObjectId.isValid(projectId))
+      throw new BadRequestException("Invalid project ID");
 
     // 1. Verify the project exists
     const project = await this.projectModel.findById(projectId).exec();
@@ -192,12 +197,17 @@ export class DocumentsService {
   // ========================================================================
   // GET DOWNLOAD URL
   // ========================================================================
-  async getDownloadUrl(
+  async getPrivateDownloadUrl(
     actorId: string,
     correlationId: string,
-    dto: GetDownloadUrlDto,
+    projectId: string,
+    documentId: string,
   ) {
-    const { projectId, documentId } = dto;
+    if (!Types.ObjectId.isValid(projectId))
+      throw new BadRequestException("Invalid project ID");
+
+    if (!Types.ObjectId.isValid(documentId))
+      throw new BadRequestException("Invalid document ID");
 
     const doc = await this.documentModel
       .findOne({
@@ -245,14 +255,93 @@ export class DocumentsService {
   }
 
   // ========================================================================
+  // GET PUBLIC DOWNLOAD URL (For External Users)
+  // ========================================================================
+  async getDownloadUrl(
+    actorId: string, // Default to anonymous for external users
+    correlationId: string,
+    projectId: string,
+    documentId: string,
+    visibility: ProjectVisibility[],
+  ) {
+    if (!Types.ObjectId.isValid(projectId))
+      throw new BadRequestException("Invalid project ID");
+
+    if (!Types.ObjectId.isValid(documentId))
+      throw new BadRequestException("Invalid document ID");
+
+    // 1. Fetch the Project to verify its visibility
+    const project = await this.projectModel
+      .findOne({
+        _id: projectId,
+        isDeleted: false,
+        visibility: { $in: visibility },
+      })
+      .lean()
+      .exec();
+
+    // 2. If the project isn't public, we shouldn't even check for the document
+    if (!project) throw new NotFoundException("Project not found");
+
+    // 3. Fetch the Document
+    const doc = await this.documentModel
+      .findOne({
+        _id: documentId,
+        projectId: new Types.ObjectId(projectId),
+        isDeleted: false,
+      })
+      .lean()
+      .exec();
+
+    if (!doc) throw new NotFoundException("Document not found");
+
+    // 4. Generate a GET URL valid for 15 minutes
+    const downloadUrl = await this.storageService.generatePresignedGetUrl(
+      "research-files",
+      doc.fileKey,
+      env.MAX_TIME_LIMIT_MINUTES * 60,
+    );
+
+    // 5. Kafka Event: Track public downloads for analytics
+    const event: BaseEvent<any> = {
+      eventId: uuidv7(),
+      eventType: "collaboration.document_download.public",
+      eventVersion: "1.0",
+      timestamp: new Date().toISOString(),
+      producer: "collaboration-service",
+      correlationId,
+      actorId,
+      data: {
+        document_id: doc._id.toString(),
+        project_id: projectId,
+        file_name: doc.fileName,
+      },
+    };
+
+    publishEvent("collaboration.events", event).catch((err) =>
+      this.logger.error(
+        { err, documentId },
+        "Failed to publish public download event",
+      ),
+    );
+
+    return { downloadUrl, fileName: doc.fileName };
+  }
+
+  // ========================================================================
   // DELETE DOCUMENT (Soft Delete & Counter Decrement)
   // ========================================================================
   async deleteDocument(
     actorId: string,
     correlationId: string,
-    dto: DeleteDocumentDto,
+    projectId: string,
+    documentId: string,
   ) {
-    const { projectId, documentId } = dto;
+    if (!Types.ObjectId.isValid(projectId))
+      throw new BadRequestException("Invalid project ID");
+
+    if (!Types.ObjectId.isValid(documentId))
+      throw new BadRequestException("Invalid document ID");
 
     // 1. Fetch the document
     // We check `isDeleted: false` to ensure idempotency (can't delete twice)
