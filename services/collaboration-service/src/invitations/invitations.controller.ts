@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   Patch,
   Post,
@@ -122,5 +123,37 @@ export class InvitationsController {
       projectId,
       requestId,
     );
+  }
+
+  // GET /invitations/:projectId/stats
+  @UseGuards(JwtAuthGuard, ProjectAccessGuard)
+  @ProjectRoles(MemberRole.OWNER)
+  @Get(":projectId/stats")
+  async getProjectTabStats(
+    @ActorId() actorId: string,
+    @CorrelationId() correlationId: string,
+    @Param("projectId") projectId: string,
+  ) {
+    return this.invitationsService.getProjectTabStats(
+      actorId,
+      correlationId,
+      projectId,
+    );
+  }
+
+  // GET /invitations/invite/:projectId
+  @UseGuards(JwtAuthGuard, ProjectAccessGuard)
+  @ProjectRoles(MemberRole.OWNER)
+  @Get("invite/:projectId")
+  async listInvitations(@Param("projectId") projectId: string) {
+    return this.invitationsService.getPendingInvitations(projectId);
+  }
+
+  // GET /invitations/request/:projectId
+  @UseGuards(JwtAuthGuard, ProjectAccessGuard)
+  @ProjectRoles(MemberRole.OWNER)
+  @Get("request/:projectId")
+  async listRequests(@Param("projectId") projectId: string) {
+    return this.invitationsService.getPendingJoinRequests(projectId);
   }
 }

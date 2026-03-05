@@ -49,6 +49,9 @@ export class ProjectInvitation {
   // MongoDB will automatically delete this document when this date passes
   @Prop({ required: true, index: { expires: 0 } })
   expiresAt!: Date;
+
+  createdAt!: Date;
+  updatedAt!: Date;
 }
 
 export const ProjectInvitationSchema =

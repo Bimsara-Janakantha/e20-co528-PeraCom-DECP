@@ -613,4 +613,127 @@ export class InvitationsService {
       message: "Your request to join has been withdrawn.",
     };
   }
+
+  // ========================================================================
+  // GET UI TAB STATS (Badge Counts for Members, Invites, Requests)
+  // ========================================================================
+  async getProjectTabStats(
+    actorId: string,
+    correlationId: string,
+    projectId: string,
+  ) {
+    if (!Types.ObjectId.isValid(projectId))
+      throw new BadRequestException("Invalid Project ID");
+
+    // Run all three lightweight queries in parallel for maximum speed
+    const [project, pendingInvitesCount, pendingRequestsCount] =
+      await Promise.all([
+        this.projectModel
+          .findById(projectId)
+          .select("memberCount")
+          .lean()
+          .exec(),
+        this.inviteModel
+          .countDocuments({
+            projectId: new Types.ObjectId(projectId),
+            type: InvitationType.OUTBOUND_INVITE,
+            status: InvitationStatus.PENDING,
+          })
+          .exec(),
+        this.inviteModel
+          .countDocuments({
+            projectId: new Types.ObjectId(projectId),
+            type: InvitationType.INBOUND_REQUEST,
+            status: InvitationStatus.PENDING,
+          })
+          .exec(),
+      ]);
+
+    if (!project) throw new NotFoundException("Project not found");
+
+    // Kafka Event
+    const statsEvent: BaseEvent<any> = {
+      eventId: uuidv7(),
+      eventType: "collaboration.project.tab_stats_viewed",
+      eventVersion: "1.0",
+      timestamp: new Date().toISOString(),
+      producer: "collaboration-service",
+      correlationId,
+      actorId,
+      data: {
+        project_id: projectId,
+        members_count: project.memberCount,
+        invitations_count: pendingInvitesCount,
+        requests_count: pendingRequestsCount,
+      },
+    };
+
+    publishEvent("collaboration.events", statsEvent).catch((err) =>
+      this.logger.error(
+        { err, correlationId, projectId },
+        "Failed to publish project tab stats viewed event",
+      ),
+    );
+
+    return {
+      membersCount: project.memberCount,
+      invitationsCount: pendingInvitesCount,
+      requestsCount: pendingRequestsCount,
+    };
+  }
+
+  // ========================================================================
+  // LIST 1: GET PENDING OUTBOUND INVITATIONS
+  // ========================================================================
+  async getPendingInvitations(projectId: string, limit = 20, skip = 0) {
+    const invitations = await this.inviteModel
+      .find({
+        projectId: new Types.ObjectId(projectId),
+        type: InvitationType.OUTBOUND_INVITE,
+        status: InvitationStatus.PENDING,
+      })
+      .sort({ createdAt: -1 }) // Newest first
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec();
+
+    return invitations.map((inv) => ({
+      id: inv._id,
+      inviteeId: inv.inviteeId,
+      inviteeEmail: inv.inviteeEmail,
+      role: inv.role,
+      invitedAt: inv.createdAt,
+      remainingDays: Math.ceil(
+        (inv.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+      ),
+    }));
+  }
+
+  // ========================================================================
+  // LIST 2: GET PENDING INBOUND JOIN REQUESTS
+  // ========================================================================
+  async getPendingJoinRequests(projectId: string, limit = 20, skip = 0) {
+    const requests = await this.inviteModel
+      .find({
+        projectId: new Types.ObjectId(projectId),
+        type: InvitationType.INBOUND_REQUEST,
+        status: InvitationStatus.PENDING,
+      })
+      .sort({ createdAt: 1 }) // Oldest first (FIFO queue for processing requests)
+      .skip(skip)
+      .limit(limit)
+      .lean()
+      .exec();
+
+    return requests.map((req) => ({
+      id: req._id,
+      requesterId: req.inviteeId, // The person who wants to join
+      requestedRole: req.role,
+      requestedAt: req.createdAt,
+      remainingDays: Math.ceil(
+        (req.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+      ),
+    }));
+  }
 }
