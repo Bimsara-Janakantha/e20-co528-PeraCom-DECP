@@ -1,6 +1,8 @@
 import { Kafka, type Consumer, type EachMessagePayload } from "kafkajs";
 import type { BaseEvent } from "./index.js";
 
+export type { Consumer } from "kafkajs";
+
 // 1. INITIALIZE CONSUMER
 export async function createConsumer(
   brokers: string[],

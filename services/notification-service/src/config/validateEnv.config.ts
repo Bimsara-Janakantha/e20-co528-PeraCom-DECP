@@ -28,6 +28,11 @@ function getValidatedEnv() {
     "EDIT_POST_TIME_LIMIT_MINUTES",
     "MAX_FILE_SIZE_MB",
     "ENVIRONMENT",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASS",
+    "SMTP_FROM",
   ] as const;
 
   const missing = requiredVars.filter((key) => !process.env[key]);
@@ -60,6 +65,11 @@ function getValidatedEnv() {
     ),
     MAX_FILE_SIZE_MB: parseInt(process.env.MAX_FILE_SIZE_MB as string, 10),
     ENVIRONMENT: process.env.ENVIRONMENT as string,
+    SMTP_HOST: process.env.SMTP_HOST as string,
+    SMTP_PORT: process.env.SMTP_PORT as string,
+    SMTP_USER: process.env.SMTP_USER as string,
+    SMTP_PASS: process.env.SMTP_PASS as string,
+    SMTP_FROM: process.env.SMTP_FROM as string,
   };
 }
 
