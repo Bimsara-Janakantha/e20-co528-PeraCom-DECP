@@ -371,17 +371,17 @@ services:
     expose:
       - "4006"
 
-  # analytics-service:
-  #   container_name: decp-analytics-service
-  #   build:
-  #     context: .
-  #     dockerfile: ./services/analytics-service/Dockerfile
-  #   env_file:
-  #     - ./services/analytics-service/.env.prod
-  #   depends_on:
-  #     - kafka
-  #     - postgres
-  #   networks:
-  #     - decp-network
-  #   expose:
-  #     - "4007"
+  analytics-service:
+    container_name: decp-analytics-service
+    build:
+      context: .
+      dockerfile: ./services/analytics-service/Dockerfile
+    env_file:
+      - ./services/analytics-service/.env.prod
+    depends_on:
+      - kafka
+      - postgres
+    networks:
+      - decp-network
+    expose:
+      - "4007"
