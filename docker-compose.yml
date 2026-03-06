@@ -341,21 +341,21 @@ services:
     expose:
       - "4004"
 
-  # message-service:
-  #   container_name: decp-message-service
-  #   build:
-  #     context: .
-  #     dockerfile: ./services/message-service/Dockerfile
-  #   env_file:
-  #     - ./services/message-service/.env.prod
-  #   depends_on:
-  #     - mongo
-  #     - kafka
-  #     - redis
-  #   networks:
-  #     - decp-network
-  #   expose:
-  #     - "4005"
+  message-service:
+    container_name: decp-message-service
+    build:
+      context: .
+      dockerfile: ./services/message-service/Dockerfile
+    env_file:
+      - ./services/message-service/.env.prod
+    depends_on:
+      - mongo
+      - kafka
+      - redis
+    networks:
+      - decp-network
+    expose:
+      - "4005"
 
   # notification-service:
   #   container_name: decp-notification-service
