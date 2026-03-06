@@ -13,6 +13,10 @@ import { HealthModule } from "./health/health.module.js";
 import { MetricsModule } from "./metrics/metrics.module.js";
 import { LoggerModule } from "nestjs-pino";
 import { MongooseModule } from "@nestjs/mongoose";
+import { MessagesModule } from "./messages/messages.module.js";
+import { PresenceModule } from "./presence/presence.module.js";
+import { ConversationsModule } from "./conversations/conversations.module.js";
+import { MessagingModule } from "./messaging/messaging.module.js";
 
 @Module({
   imports: [
@@ -51,6 +55,10 @@ import { MongooseModule } from "@nestjs/mongoose";
     // Application modules
     HealthModule,
     MetricsModule,
+    PresenceModule,
+    ConversationsModule,
+    MessagesModule,
+    MessagingModule,
   ],
   providers: [JwtStrategy, JwtAuthGuard, RolesGuard],
   exports: [JwtAuthGuard, RolesGuard],

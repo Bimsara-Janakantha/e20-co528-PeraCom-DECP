@@ -13,8 +13,8 @@ import { JwtService } from "@nestjs/jwt"; // Or your custom Auth Service
 import { ConversationsService } from "../conversations/conversations.service.js";
 import { publishEvent } from "@decp/event-bus"; // Your Kafka publisher
 import { v7 as uuidv7 } from "uuid";
-import type { MessagesService } from "./messages.service.js";
-import type { PresenceService } from "../presence/presence.service.js";
+import { MessagesService } from "../messages/messages.service.js";
+import { PresenceService } from "../presence/presence.service.js";
 import { CorrelationId } from "../auth/decorators/correlation-id.decorator.js";
 
 @WebSocketGateway({
