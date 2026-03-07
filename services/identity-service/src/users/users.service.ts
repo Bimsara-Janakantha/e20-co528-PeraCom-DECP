@@ -545,6 +545,7 @@ export class UsersService {
           role: true,
           reg_number: true,
           profile_pic: true,
+          is_active: true,
         },
       }),
 
