@@ -60,6 +60,10 @@ export class AuthService {
 
     // 4. Generate Internal JWT Passport
     const jwtPayload = { sub: user.id, role: user.role };
+    const token = this.jwtService.sign(jwtPayload);
+
+    console.log("Generated JWT Payload:", jwtPayload);
+    console.log("Generated JWT Token:", token);
 
     // 5. Kafka Event: User Login
     const loginEvent = {
@@ -82,7 +86,7 @@ export class AuthService {
     await publishEvent("identity.events", loginEvent);
 
     return {
-      access_token: this.jwtService.sign(jwtPayload),
+      access_token: token,
       user: {
         id: user.id,
         email: user.email,
