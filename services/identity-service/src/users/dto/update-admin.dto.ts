@@ -7,13 +7,9 @@ import {
   IsEnum,
   IsArray,
   ArrayNotEmpty,
+  IsNotEmpty,
 } from "class-validator";
-
-export enum UserRole {
-  ADMIN = "ADMIN",
-  STUDENT = "STUDENT",
-  ALUMNI = "ALUMNI",
-}
+import { EmailPattern, UserRole } from "../schemas/user.schema.js";
 
 export class UpdateRolesDto {
   @IsArray()
@@ -26,6 +22,10 @@ export class UpdateRolesDto {
 }
 
 export class UpdateUserAdminDto {
+  @IsNotEmpty()
+  @IsUUID()
+  userId!: string;
+
   @IsOptional()
   @IsString()
   first_name?: string;
@@ -36,8 +36,12 @@ export class UpdateUserAdminDto {
 
   @IsOptional()
   @IsEmail()
-  @Matches(/^[^\s@]+@eng\.pdn\.ac\.lk$/, {
+  @Matches(EmailPattern, {
     message: "Use the university email address",
   })
   email?: string;
+
+  @IsOptional()
+  @IsEnum(UserRole)
+  role?: UserRole;
 }

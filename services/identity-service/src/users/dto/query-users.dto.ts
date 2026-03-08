@@ -1,6 +1,6 @@
 import { Type } from "class-transformer";
 import { IsOptional, IsString, IsEnum, IsNumber } from "class-validator";
-import { UserRole } from "./update-admin.dto.js";
+import { UserRole } from "../schemas/user.schema.js";
 
 export class QueryUsersDto {
   @IsOptional()

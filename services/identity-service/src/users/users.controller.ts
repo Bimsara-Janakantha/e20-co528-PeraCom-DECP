@@ -7,6 +7,7 @@ import {
   Param,
   Get,
   Query,
+  Delete,
 } from "@nestjs/common";
 import { UsersService } from "./users.service.js";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard.js";
@@ -61,10 +62,10 @@ export class UsersController {
     return this.usersService.createSingleUser(dto, correlationId, adminId);
   }
 
-  // PATCH /users/bulk/suspend
+  // DELETE /users/bulk
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("ADMIN")
-  @Patch("bulk/suspend")
+  @Delete("bulk")
   suspendBulk(
     @Body() dto: BulkSuspendDto,
     @CorrelationId() correlationId: string,
@@ -77,10 +78,10 @@ export class UsersController {
     );
   }
 
-  // PATCH /users/:id/suspend
+  // DELETE /users/:id
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("ADMIN")
-  @Patch(":id/suspend")
+  @Delete(":id")
   suspendUser(
     @Param("id") userId: string,
     @CorrelationId() correlationId: string,
@@ -112,20 +113,18 @@ export class UsersController {
     return this.usersService.updateUserRoles(admin, correlationId, payload);
   }
 
-  // PATCH /users/:id
+  // PATCH /users
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles("ADMIN")
-  @Patch(":id")
+  @Patch()
   updateUserByAdmin(
     @ActorId() adminId: string,
     @CorrelationId() correlationId: string,
-    @Param("id") userId: string,
     @Body() userData: UpdateUserAdminDto,
   ) {
     return this.usersService.updateUserByAdmin(
       adminId,
       correlationId,
-      userId,
       userData,
     );
   }

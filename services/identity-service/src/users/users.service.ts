@@ -33,6 +33,17 @@ export class UsersService {
       where: { email: data.email.trim().toLowerCase() },
     });
 
+    const selectFields = {
+      id: true,
+      first_name: true,
+      last_name: true,
+      email: true,
+      role: true,
+      reg_number: true,
+      profile_pic: true,
+      is_active: true,
+    };
+
     let newUser;
     if (existing) {
       // 2. If email exists, throw an error
@@ -51,13 +62,7 @@ export class UsersService {
           last_name: data.last_name.trim(),
           role: data.role || "STUDENT",
         },
-        select: {
-          id: true,
-          email: true,
-          first_name: true,
-          last_name: true,
-          role: true,
-        },
+        select: selectFields,
       });
     }
 
@@ -73,13 +78,7 @@ export class UsersService {
           reg_number: data.email.split("@")[0] || "",
           role: data.role || "STUDENT",
         },
-        select: {
-          id: true,
-          email: true,
-          first_name: true,
-          last_name: true,
-          role: true,
-        },
+        select: selectFields,
       });
     }
 
@@ -103,7 +102,7 @@ export class UsersService {
 
     await publishEvent("identity.events", userCreatedEvent);
 
-    return { status: "user_created" };
+    return { status: "user_created", user: newUser };
   }
 
   // ==========================================
@@ -284,7 +283,7 @@ export class UsersService {
     // 5. Return the result
     return {
       message: "User suspended successfully",
-      userId: updatedUser.id,
+      user: updatedUser.id,
     };
   }
 
@@ -393,9 +392,10 @@ export class UsersService {
   async updateUserByAdmin(
     adminId: string,
     correlationId: string,
-    userId: string,
-    userData: UpdateUserAdminDto,
+    dto: UpdateUserAdminDto,
   ) {
+    const { userId, ...userData } = dto;
+
     // 1. Admin cannot update their own profile through this endpoint
     if (adminId === userId) {
       throw new ForbiddenException(
@@ -409,11 +409,13 @@ export class UsersService {
       data: userData,
       select: {
         id: true,
-        email: true,
-        reg_number: true,
         first_name: true,
         last_name: true,
+        email: true,
         role: true,
+        reg_number: true,
+        profile_pic: true,
+        is_active: true,
       },
     });
 
@@ -434,15 +436,21 @@ export class UsersService {
         first_name: updatedUser.first_name,
         last_name: updatedUser.last_name,
         email: updatedUser.email,
+        role: updatedUser.role,
       },
     };
     await publishEvent("identity.events", userUpdatedEvent);
+
+    console.log(
+      `Admin ${adminId} updated user ${userId}. Updated data:`,
+      updatedUser,
+    );
 
     return { message: "User updated successfully", user: updatedUser };
   }
 
   // ======================================
-  // ROLE CHANGE (SINGLE + BULK)
+  // ROLE CHANGE (BULK)
   // ======================================
   async updateUserRoles(
     adminId: string,
