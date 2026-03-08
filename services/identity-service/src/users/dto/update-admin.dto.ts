@@ -5,17 +5,20 @@ import {
   IsUUID,
   Matches,
   IsEnum,
-  IsArray,
-  ArrayNotEmpty,
   IsNotEmpty,
 } from "class-validator";
-import { EmailPattern, UserRole } from "../schemas/user.schema.js";
+import {
+  BatchPattern,
+  EmailPattern,
+  UserRole,
+} from "../schemas/user.schema.js";
 
 export class UpdateRolesDto {
-  @IsArray()
-  @ArrayNotEmpty()
-  @IsUUID("all", { each: true })
-  userIds!: string[];
+  @IsNotEmpty()
+  @Matches(BatchPattern, {
+    message: "Batch must be in the format 'EXX' where XX is the batch number",
+  })
+  batch!: string;
 
   @IsEnum(UserRole)
   role!: UserRole;

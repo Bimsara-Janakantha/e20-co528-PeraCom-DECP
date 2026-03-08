@@ -67,14 +67,14 @@ export class UsersController {
   @Roles("ADMIN")
   @Delete("bulk")
   suspendBulk(
-    @Body() dto: BulkSuspendDto,
     @CorrelationId() correlationId: string,
     @ActorId() adminId: string,
+    @Body() payload: BulkSuspendDto,
   ) {
     return this.usersService.suspendBulkUsers(
-      dto.userIds,
       correlationId,
       adminId,
+      payload.batch,
     );
   }
 
@@ -111,6 +111,18 @@ export class UsersController {
     @Body() payload: UpdateRolesDto,
   ) {
     return this.usersService.updateUserRoles(admin, correlationId, payload);
+  }
+
+  // PATCH /users/:id
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ADMIN")
+  @Patch(":id")
+  reactivateUser(
+    @ActorId() adminId: string,
+    @Param("id") userId: string,
+    @CorrelationId() correlationId: string,
+  ) {
+    return this.usersService.reactivateSingleUser(adminId, correlationId, userId);
   }
 
   // PATCH /users

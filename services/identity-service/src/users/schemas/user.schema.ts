@@ -17,3 +17,5 @@ export class SortOrder {
 }
 
 export const EmailPattern = /^[^\s@]+@([^\s@]+\.)?pdn\.ac\.lk$/;
+
+export const BatchPattern = /^E\d{2}$/;
