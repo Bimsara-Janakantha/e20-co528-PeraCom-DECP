@@ -34,7 +34,7 @@ export class NotificationConsumerService
         [env.KAFKA_BROKER],
         env.KAFKA_GROUP_ID, // Unique group ID for this microservice
         [env.KAFKA_TOPICS],
-        false, // Do NOT read from the beginning
+        env.KAFKA_READ_FROM_BEGINNING, // Do NOT read from the beginning
         env.KAFKA_CLIENT_ID, // Client ID for better observability in Kafka
       );
 

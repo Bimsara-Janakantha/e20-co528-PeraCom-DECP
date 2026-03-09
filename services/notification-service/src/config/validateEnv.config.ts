@@ -21,6 +21,7 @@ function getValidatedEnv() {
     "KAFKA_GROUP_ID",
     "KAFKA_CLIENT_ID",
     "KAFKA_TOPICS",
+    "KAFKA_READ_FROM_BEGINNING",
     "OTEL_EXPORTER_OTLP_ENDPOINT",
     "MONGO_URI",
     "MINIO_ENDPOINT",
@@ -56,6 +57,7 @@ function getValidatedEnv() {
     KAFKA_GROUP_ID: process.env.KAFKA_GROUP_ID as string,
     KAFKA_CLIENT_ID: process.env.KAFKA_CLIENT_ID as string,
     KAFKA_TOPICS: process.env.KAFKA_TOPICS as string,
+    KAFKA_READ_FROM_BEGINNING: process.env.KAFKA_READ_FROM_BEGINNING === "true",
     JWT_SECRET: process.env.JWT_SECRET as string,
     OTEL_EXPORTER_OTLP_ENDPOINT: process.env
       .OTEL_EXPORTER_OTLP_ENDPOINT as string,
