@@ -204,7 +204,7 @@ services:
   # OBSERVABILITY
   # =========================
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:latest
+    image: otel/opentelemetry-collector-contrib:0.146.0
     container_name: decp-otel-collector
     command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
