@@ -62,6 +62,12 @@ export class NotificationConsumerService
       // We route the event to the correct business logic handler based on its type.
       switch (event.eventType) {
         // --- IDENTITY EVENTS ---
+        case "identity.user.login": {
+          this.logger.debug(`User logged in: ${event.data.user_id}`);
+          await this.processorService.handleUserLogin(event.data);
+          break;
+        }
+
         case "identity.user_list.retrieved": {
           this.logger.debug(
             `Received event [${event.eventType}] from topic [${topic}] with data: ${JSON.stringify(event.data)}`,
@@ -74,7 +80,7 @@ export class NotificationConsumerService
         }
 
         // --- COLLABORATION EVENTS ---
-        case "collaboration.join_request.created":
+        /* case "collaboration.join_request.created":
           await this.processorService.handleJoinRequest(event.data);
           break;
         case "collaboration.member.invitation_created":
@@ -93,7 +99,7 @@ export class NotificationConsumerService
         case "post.liked":
         case "comment.created":
           // await this.processorService.handleSocialInteraction(event.data);
-          break;
+          break; */
 
         default:
           this.logger.warn(`Unhandled event type: ${event.eventType}`);

@@ -28,6 +28,9 @@ class Categories {
 
   @Prop({ default: true })
   career_alerts!: boolean; // Job matches, application updates
+
+  @Prop({ default: true })
+  account_security!: boolean; // Login and security alerts
 }
 
 @Schema({ timestamps: true })

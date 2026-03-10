@@ -4,6 +4,7 @@ import { Document } from "mongoose";
 export type NotificationDocument = Notification & Document;
 
 export enum ActionType {
+  USER_LOGGED_IN = "USER_LOGGED_IN",
   INVITED = "INVITED",
   JOINED = "JOINED",
   REQUESTED_TO_JOIN = "REQUESTED_TO_JOIN",
@@ -14,6 +15,7 @@ export enum ActionType {
 }
 
 export enum EntityType {
+  USER = "USER",
   PROJECT = "PROJECT",
   POST = "POST",
   JOB = "JOB",

@@ -6,7 +6,7 @@ import {
   Notification,
   NotificationSchema,
 } from "./schemas/notification.schema.js";
-import { EmailService } from "../config/email.service.js";
+import { EmailService } from "../emails/email.service.js";
 
 @Module({
   imports: [

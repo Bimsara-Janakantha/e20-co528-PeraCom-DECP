@@ -12,9 +12,15 @@ import {
   NotificationPreference,
   type NotificationPreferenceDocument,
 } from "../preferences/schemas/preference.schema.js";
+import { EmailService } from "../emails/email.service.js";
 
-// Placeholder for the Email Service we will build next
-// import { EmailService } from "../email/email.service.js";
+type LoginEventData = {
+  user_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+};
 
 @Injectable()
 export class NotificationProcessorService {
@@ -25,7 +31,7 @@ export class NotificationProcessorService {
     private readonly notificationModel: Model<NotificationDocument>,
     @InjectModel(NotificationPreference.name)
     private readonly preferenceModel: Model<NotificationPreferenceDocument>,
-    // private readonly emailService: EmailService
+    private readonly emailService: EmailService,
   ) {}
 
   // ========================================================================
@@ -43,6 +49,71 @@ export class NotificationProcessorService {
   }
 
   // ========================================================================
+  // 1. HANDLE USER LOGIN (Account Security)
+  // ========================================================================
+  async handleUserLogin(data: LoginEventData) {
+    const recipientId = data.user_id;
+
+    console.log("Handling user login event for user_id:", recipientId);
+
+    // If no user_id drop notification
+    if (!recipientId) {
+      this.logger.warn(
+        { data },
+        "Dropped login event because user_id is missing",
+      );
+      return;
+    }
+
+    // Get user preference for notifications
+    const prefs = await this.getUserPreferences(recipientId);
+    if (!prefs.categories.account_security) {
+      this.logger.debug(
+        { recipientId },
+        "User opted out of account security notifications. Dropping login alert.",
+      );
+      return;
+    }
+
+    const loginTime = new Date().toISOString();
+
+    // Send email if prefered
+    if (prefs.channels.email && data.email) {
+      await this.emailService.sendLoginNotificationEmail({
+        ...data,
+        loginTime,
+      });
+      this.logger.info(
+        `[MOCK] Sending Login Alert Email to ${data.email} for user ${recipientId}`,
+      );
+    }
+
+    // Send In App Notification if prefered
+    if (prefs.channels.inApp) {
+      await this.notificationModel.create({
+        recipientId,
+        actorId: recipientId,
+        actionType: ActionType.USER_LOGGED_IN,
+        entityType: EntityType.USER,
+        entityId: recipientId,
+        metadata: {
+          email: data.email,
+          first_name: data.first_name,
+          last_name: data.last_name,
+          role: data.role,
+          login_time: loginTime,
+        },
+      });
+    }
+
+    // Job completion message
+    this.logger.info(
+      { recipientId },
+      "Processed login notification according to user preferences",
+    );
+  }
+
+  /* // ========================================================================
   // 1. HANDLE PROJECT INVITATION (Outbound Invite)
   // ========================================================================
   async handleProjectInvitation(data: any) {
@@ -196,6 +267,6 @@ export class NotificationProcessorService {
         projectTitle: project_title,
         invitationLink: `https://decp.app/projects/${project_id}/join?token=${invitation_id}` // Frontend route
     });
-    } */
-  }
+    }
+  } */
 }
