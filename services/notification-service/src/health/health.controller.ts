@@ -6,6 +6,7 @@ import {
 } from "@nestjs/terminus";
 import { context, trace } from "@opentelemetry/api";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
+import { env } from "../config/validateEnv.config.js";
 
 @Controller()
 export class HealthController {
@@ -33,7 +34,7 @@ export class HealthController {
 
     return {
       status: "UP",
-      service: "notification-service",
+      service: env.SERVICE_NAME,
       traceId: traceId,
       timestamp: new Date(),
     };
