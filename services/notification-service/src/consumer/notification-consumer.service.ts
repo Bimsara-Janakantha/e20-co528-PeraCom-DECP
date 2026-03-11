@@ -86,6 +86,12 @@ export class NotificationConsumerService
           break;
         }
 
+        case "identity.user.reactivate": {
+          this.logger.debug(`User reactivated: ${event.data.user_id}`);
+          await this.processorService.handleUserReactivated(event.data);
+          break;
+        }
+
         default:
           // We safely ignore events we don't care about.
           this.logger.warn(`Unhandled event type: ${event.eventType}`);

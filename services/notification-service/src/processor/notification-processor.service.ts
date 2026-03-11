@@ -261,4 +261,57 @@ export class NotificationProcessorService {
       );
     }
   }
+
+  // ========================================================================
+  // 1.4 HANDLE USER REACTIVATED
+  // ========================================================================
+  async handleUserReactivated(data: any) {
+    const recipientId = data.user_id;
+
+    this.logger.info(
+      { recipientId },
+      "Handling user reactivate event",
+    );
+
+    if (!recipientId) return;
+
+    // Step A: Check Preferences
+    const prefs = await this.getUserPreferences(recipientId);
+    if (!prefs.categories.account_security) {
+      this.logger.debug(
+        { recipientId },
+        "User opted out of account security notifications. Dropping reactivation alert.",
+      );
+      return;
+    }
+
+    // Step B: In-App Notification
+    if (prefs.channels.inApp) {
+      await this.notificationModel.create({
+        recipientId,
+        actorId: "system", // Admin action
+        actionType: ActionType.SYSTEM_ALERT,
+        entityType: EntityType.USER, 
+        entityId: recipientId,
+        metadata: {
+          message:
+            "Your account access has been successfully restored. Welcome back!",
+        },
+      });
+      this.logger.info({ recipientId }, "Created reactivated in-app notification");
+    }
+
+    // Step C: Email Dispatch
+    if (data.email) {
+      await this.emailService.sendReactivationEmail({
+        email: data.email,
+        name: `${data.first_name} ${data.last_name}`.trim(),
+      });
+      this.logger.info(
+        `[MOCK] Sending Reactivation Email to ${data.email} for user ${recipientId}`,
+      );
+    }
+
+    this.logger.info({ recipientId }, "Successfully processed user reactivation event");
+  }
 }

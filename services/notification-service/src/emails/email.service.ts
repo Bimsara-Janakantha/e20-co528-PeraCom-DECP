@@ -135,25 +135,22 @@ export class EmailService implements OnModuleInit {
     html = html
       .replaceAll("{{FULL_NAME}}", payload.name)
       .replaceAll("{{EMAIL}}", payload.email)
+      .replaceAll("{{LINK}}", env.FRONTEND_URL + "/login")
       .replaceAll("{{ROLE}}", payload.role);
 
     await this.sendMail(payload.email, subject, html);
   }
 
-  /* Function to send project invitation email */
-  async sendProjectInvitationEmail(payload: {
-    to: string;
-    projectTitle: string;
-    invitationLink: string;
-  }) {
-    const subject = `You have been invited to join ${payload.projectTitle}`;
+  /* Function to send account reactivated email */
+  async sendReactivationEmail(payload: { email: string; name: string }) {
+    const subject = "Account Restored - Welcome back to PeraCom DECP!";
 
-    let html = this.loadTemplate("project-invitation");
+    let html = this.loadTemplate("account-reactivated");
 
     html = html
-      .replaceAll("{{PROJECT_TITLE}}", payload.projectTitle)
-      .replaceAll("{{INVITATION_LINK}}", payload.invitationLink);
+      .replaceAll("{{LINK}}", env.FRONTEND_URL + "/login")
+      .replaceAll("{{FULL_NAME}}", payload.name);
 
-    await this.sendMail(payload.to, subject, html);
+    await this.sendMail(payload.email, subject, html);
   }
 }

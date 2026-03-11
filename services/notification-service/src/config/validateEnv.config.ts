@@ -37,6 +37,7 @@ function getValidatedEnv() {
     "SMTP_USER",
     "SMTP_PASS",
     "SMTP_FROM",
+    "FRONTEND_URL",
   ] as const;
 
   const missing = requiredVars.filter((key) => !process.env[key]);
@@ -78,6 +79,7 @@ function getValidatedEnv() {
     SMTP_USER: process.env.SMTP_USER as string,
     SMTP_PASS: process.env.SMTP_PASS as string,
     SMTP_FROM: process.env.SMTP_FROM as string,
+    FRONTEND_URL: process.env.FRONTEND_URL as string,
   };
 }
 
