@@ -49,7 +49,7 @@ export class NotificationProcessorService {
   }
 
   // ========================================================================
-  // 1. HANDLE USER LOGIN (Account Security)
+  // 1.1 HANDLE USER LOGIN (Account Security)
   // ========================================================================
   async handleUserLogin(data: LoginEventData) {
     const recipientId = data.user_id;
@@ -113,160 +113,72 @@ export class NotificationProcessorService {
     );
   }
 
-  /* // ========================================================================
-  // 1. HANDLE PROJECT INVITATION (Outbound Invite)
   // ========================================================================
-  async handleProjectInvitation(data: any) {
-    const {
-      invitation_id,
-      project_id,
-      project_title,
-      inviter_id,
-      invitee_id,
-      invitee_email,
-    } = data;
-
-    this.logger.info(
-      { invitee_id, project_id },
-      "Processing project invitation notification",
-    );
-
-    // 1. Evaluate the Preference Matrix
-    const prefs = await this.getUserPreferences(invitee_id);
-    if (!prefs.categories.collaboration) {
-      this.logger.debug(
-        "User opted out of collaboration notifications. Dropping event.",
-      );
-      return;
-    }
-
-    // 2. Dispatch In-App Notification (If allowed)
-    if (prefs.channels.inApp) {
-      await this.notificationModel.create({
-        recipientId: invitee_id,
-        actorId: inviter_id,
-        actionType: ActionType.INVITED,
-        entityType: EntityType.PROJECT,
-        entityId: project_id,
-        metadata: {
-          projectTitle: project_title,
-          invitationId: invitation_id,
-        },
-      });
-    }
-
-    // 3. Dispatch Email (If allowed)
-    if (prefs.channels.email && invitee_email) {
-      // await this.emailService.sendProjectInvitationEmail({
-      //   to: invitee_email,
-      //   projectTitle: project_title,
-      //   invitationLink: `https://decp.app/projects/${project_id}/join?token=${invitation_id}`
-      // });
-      this.logger.info(
-        `[MOCK] Sending Email to ${invitee_email} for project invite`,
-      );
-    }
-  }
-
+  // 1.2 HANDLE USER CREATED (Onboarding)
   // ========================================================================
-  // 2. HANDLE OFFLINE MESSAGE (Direct Messaging)
-  // ========================================================================
-  async handleOfflineMessage(data: any) {
-    const {
-      message_id,
-      conversation_id,
-      target_user_id,
-      content_snippet,
-      actorId,
-    } = data;
+  async handleUserCreated(data: any) {
+    const recipientId = data.user_id;
 
-    this.logger.info(
-      { target_user_id, conversation_id },
-      "Processing offline message alert",
-    );
+    console.log("Handling new user created event for user_id:", recipientId);
 
-    const prefs = await this.getUserPreferences(target_user_id);
-
-    // Strict category check
-    if (!prefs.categories.direct_messages) return;
-
-    // 1. In-App Bell Icon
-    if (prefs.channels.inApp) {
-      await this.notificationModel.create({
-        recipientId: target_user_id,
-        actorId: actorId, // The person who sent the message
-        actionType: ActionType.MESSAGE_RECEIVED,
-        entityType: EntityType.MESSAGE,
-        entityId: conversation_id, // We link to the conversation, not the specific message
-        metadata: {
-          messageId: message_id,
-          snippet: content_snippet, // e.g., "Sounds good, see you at 5!"
-        },
-      });
-    }
-
-    // 2. Email Dispatch
-    if (prefs.channels.email) {
-      // Because this is an offline ping, we might need to fetch the user's email
-      // from the Identity Service first if it wasn't passed in the Kafka event payload.
-      // await this.emailService.sendUnreadMessageAlert(target_user_id, content_snippet);
-      this.logger.info(
-        `[MOCK] Sending Offline Message Email to user ${target_user_id}`,
-      );
-    }
-  }
-
-  // ========================================================================
-  // 3. HANDLE JOIN REQUEST & MEMBER JOINED
-  // ========================================================================
-  async handleJoinRequest(data: any) {
-    // Note: To notify project owners about a join request, the Kafka payload
-    // needs to either include an array of `owner_ids`, or this service needs to
-    // query the Collaboration Service/Database to find out who the owners are.
-    // For this example, we assume `target_owner_id` is passed.
-
-    const {
-      request_id,
-      project_id,
-      requester_id,
-      project_title,
-      target_owner_id,
-    } = data;
-
-    if (!target_owner_id) {
+    if (!recipientId) {
       this.logger.warn(
-        "No target_owner_id provided in join_request event payload",
+        { data },
+        "Dropped user created event because user_id is missing",
       );
       return;
     }
 
-    const prefs = await this.getUserPreferences(target_owner_id);
-    if (!prefs.categories.collaboration) return;
+    // Step A: Initialize the user's NotificationPreference document in MongoDB with defaults
+    let prefs;
+    try {
+      prefs = await this.preferenceModel.create({ userId: recipientId });
+      this.logger.info(
+        { recipientId },
+        "Created default notification preferences for new user",
+      );
+    } catch (error) {
+      this.logger.error(
+        { error, recipientId },
+        "Failed to create default preferences. Will use default fallback.",
+      );
+      prefs = {
+        channels: { inApp: true, email: true },
+        categories: { account_security: true },
+      }; // Fallback defaults
+    }
 
+    // Step C: Check the preference matrix for the email channel. Use EmailService to send Welcome Email.
+    if (prefs.channels.email && data.email) {
+      await this.emailService.sendWelcomeEmail({
+        email: data.email,
+        name: `${data.first_name} ${data.last_name}`,
+        role: data.role,
+      });
+      this.logger.info(
+        `[MOCK] Sending Welcome Email to ${data.email} for user ${recipientId}`,
+      );
+    }
+
+    // Step B: Create an In-App Notification in the notifications collection.
     if (prefs.channels.inApp) {
       await this.notificationModel.create({
-        recipientId: target_owner_id,
-        actorId: requester_id,
-        actionType: ActionType.REQUESTED_TO_JOIN,
-        entityType: EntityType.PROJECT,
-        entityId: project_id,
-        metadata: { projectTitle: project_title, requestId: request_id },
+        recipientId,
+        actorId: recipientId, // self-triggered or system
+        actionType: ActionType.SYSTEM_ALERT,
+        entityType: EntityType.USER, // generic placeholder
+        entityId: recipientId, // generic entity ID
+        metadata: {
+          message:
+            "Welcome to PeraCom DECP! We are excited to have you join our academic community.",
+        },
       });
+      this.logger.info({ recipientId }, "Created welcome in-app notification");
     }
 
-    // Email dispatch...
+    this.logger.info(
+      { recipientId },
+      "Successfully processed user creation event",
+    );
   }
-
-  async handleMemberJoined(data: any) {
-    const { project_id, user_id, role, project_title, target_owner_id } = data;
-    // Similar implementation: evaluate matrix, save in-app, send email.
-    // Inside NotificationProcessorService:
-    /*     if (prefs.channels.email && invitee_email) {
-    await this.emailService.sendProjectInvitationEmail({
-        to: invitee_email,
-        projectTitle: project_title,
-        invitationLink: `https://decp.app/projects/${project_id}/join?token=${invitation_id}` // Frontend route
-    });
-    }
-  } */
 }

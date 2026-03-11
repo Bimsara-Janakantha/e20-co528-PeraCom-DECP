@@ -24,6 +24,13 @@ export class EmailService implements OnModuleInit {
       pool: true,
       maxConnections: 5,
       maxMessages: 100,
+      tls: {
+        // This prevents the socket from closing if the
+        // server certificate isn't recognized
+        rejectUnauthorized: false,
+      },
+      // Add a timeout to prevent the process from hanging
+      connectionTimeout: 10000,
     });
   }
 
@@ -111,6 +118,24 @@ export class EmailService implements OnModuleInit {
       .replaceAll("{{EMAIL}}", payload.email)
       .replaceAll("{{ROLE}}", payload.role)
       .replaceAll("{{LOGIN_TIME}}", payload.loginTime);
+
+    await this.sendMail(payload.email, subject, html);
+  }
+
+  /* Function to send welcome onboarding email */
+  async sendWelcomeEmail(payload: {
+    email: string;
+    name: string;
+    role: string;
+  }) {
+    const subject = "Welcome to PeraCom DECP!";
+
+    let html = this.loadTemplate("welcome-onboarding");
+
+    html = html
+      .replaceAll("{{FULL_NAME}}", payload.name)
+      .replaceAll("{{EMAIL}}", payload.email)
+      .replaceAll("{{ROLE}}", payload.role);
 
     await this.sendMail(payload.email, subject, html);
   }

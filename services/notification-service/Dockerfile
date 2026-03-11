@@ -44,7 +44,7 @@ COPY --from=builder /app/shared /app/shared
 
 # Copy only the necessary files from the builder stage to the production stage
 COPY --from=builder /app/services/notification-service/dist ./dist
-COPY --from=builder /app/services/notification-service/src/email/templates ./dist/email/templates
+COPY --from=builder /app/services/notification-service/src/emails/templates ./dist/emails/templates
 
 # Copy package.json and package-lock.json to the working directory
 COPY services/notification-service/package*.json ./

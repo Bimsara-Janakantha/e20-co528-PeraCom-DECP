@@ -68,6 +68,12 @@ export class NotificationConsumerService
           break;
         }
 
+        case "identity.user.created": {
+          this.logger.debug(`New user created: ${event.data.user_id}`);
+          await this.processorService.handleUserCreated(event.data);
+          break;
+        }
+
         case "identity.user_list.retrieved": {
           this.logger.debug(
             `Received event [${event.eventType}] from topic [${topic}] with data: ${JSON.stringify(event.data)}`,
@@ -78,28 +84,6 @@ export class NotificationConsumerService
           // await this.processorService.handleUserListRetrieved(event.data);
           break;
         }
-
-        // --- COLLABORATION EVENTS ---
-        /* case "collaboration.join_request.created":
-          await this.processorService.handleJoinRequest(event.data);
-          break;
-        case "collaboration.member.invitation_created":
-          await this.processorService.handleProjectInvitation(event.data);
-          break;
-        case "collaboration.member.joined":
-          await this.processorService.handleMemberJoined(event.data);
-          break;
-
-        // --- MESSAGING EVENTS ---
-        case "message.unread.offline":
-          await this.processorService.handleOfflineMessage(event.data);
-          break;
-
-        // --- ENGAGEMENT EVENTS (Future) ---
-        case "post.liked":
-        case "comment.created":
-          // await this.processorService.handleSocialInteraction(event.data);
-          break; */
 
         default:
           this.logger.warn(`Unhandled event type: ${event.eventType}`);
