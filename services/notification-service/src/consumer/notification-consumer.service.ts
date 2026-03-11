@@ -92,6 +92,18 @@ export class NotificationConsumerService
           break;
         }
 
+        case "identity.user.suspended": {
+          this.logger.info(
+            { actorId: event.actorId },
+            `User suspended: ${event.data.user_id}`
+          );
+          await this.processorService.handleUserSuspended(
+            event.data,
+            event.actorId
+          );
+          break;
+        }
+
         default:
           // We safely ignore events we don't care about.
           this.logger.warn(`Unhandled event type: ${event.eventType}`);

@@ -153,4 +153,15 @@ export class EmailService implements OnModuleInit {
 
     await this.sendMail(payload.email, subject, html);
   }
+
+  /* Function to send account suspended email */
+  async sendSuspensionEmail(payload: { email: string; name: string }) {
+    const subject = "Account Access Revoked - PeraCom DECP";
+
+    let html = this.loadTemplate("account-suspended");
+
+    html = html.replaceAll("{{FULL_NAME}}", payload.name);
+
+    await this.sendMail(payload.email, subject, html);
+  }
 }

@@ -231,7 +231,7 @@ export class NotificationProcessorService {
         if (!user.email) continue;
 
         try {
-          // Check preferences lazily to ensure we don't spam if manually opted out somehow? 
+          // Check preferences lazily to ensure we don't spam if manually opted out somehow?
           // New users will have everything enabled.
           await this.emailService.sendWelcomeEmail({
             email: user.email,
@@ -268,40 +268,30 @@ export class NotificationProcessorService {
   async handleUserReactivated(data: any) {
     const recipientId = data.user_id;
 
-    this.logger.info(
-      { recipientId },
-      "Handling user reactivate event",
-    );
+    this.logger.info({ recipientId }, "Handling user reactivate event");
 
     if (!recipientId) return;
 
-    // Step A: Check Preferences
-    const prefs = await this.getUserPreferences(recipientId);
-    if (!prefs.categories.account_security) {
-      this.logger.debug(
-        { recipientId },
-        "User opted out of account security notifications. Dropping reactivation alert.",
-      );
-      return;
-    }
+    // No need to check preferences for reactivated users
 
-    // Step B: In-App Notification
-    if (prefs.channels.inApp) {
-      await this.notificationModel.create({
-        recipientId,
-        actorId: "system", // Admin action
-        actionType: ActionType.SYSTEM_ALERT,
-        entityType: EntityType.USER, 
-        entityId: recipientId,
-        metadata: {
-          message:
-            "Your account access has been successfully restored. Welcome back!",
-        },
-      });
-      this.logger.info({ recipientId }, "Created reactivated in-app notification");
-    }
+    // Step A: In-App Notification
+    await this.notificationModel.create({
+      recipientId,
+      actorId: "system", // Admin action
+      actionType: ActionType.SYSTEM_ALERT,
+      entityType: EntityType.USER,
+      entityId: recipientId,
+      metadata: {
+        message:
+          "Your account access has been successfully restored. Welcome back!",
+      },
+    });
+    this.logger.info(
+      { recipientId },
+      "Created reactivated in-app notification",
+    );
 
-    // Step C: Email Dispatch
+    // Step B: Email Dispatch
     if (data.email) {
       await this.emailService.sendReactivationEmail({
         email: data.email,
@@ -312,6 +302,50 @@ export class NotificationProcessorService {
       );
     }
 
-    this.logger.info({ recipientId }, "Successfully processed user reactivation event");
+    this.logger.info(
+      { recipientId },
+      "Successfully processed user reactivation event",
+    );
+  }
+
+  // ========================================================================
+  // 1.5 HANDLE USER SUSPENDED
+  // ========================================================================
+  async handleUserSuspended(data: any, actorId?: string) {
+    const recipientId = data.user_id;
+
+    this.logger.info({ recipientId, actorId }, "Handling user suspended event");
+
+    if (!recipientId) return;
+
+    // Step A: In-App Notification (Always log this system alert for auditing / future view)
+    await this.notificationModel.create({
+      recipientId,
+      actorId: actorId || "system", // Admin action
+      actionType: ActionType.SYSTEM_ALERT,
+      entityType: EntityType.USER,
+      entityId: recipientId,
+      metadata: {
+        message:
+          "Your account access has been suspended by the administration.",
+      },
+    });
+    this.logger.info({ recipientId }, "Created suspended in-app notification");
+
+    // Step B: Email Dispatch
+    if (data.email) {
+      await this.emailService.sendSuspensionEmail({
+        email: data.email,
+        name: `${data.first_name} ${data.last_name}`.trim(),
+      });
+      this.logger.info(
+        `[MOCK] Sending Suspension Email to ${data.email} for user ${recipientId}`,
+      );
+    }
+
+    this.logger.info(
+      { recipientId, actorId },
+      "Successfully processed user suspension event",
+    );
   }
 }
