@@ -470,4 +470,58 @@ export class NotificationProcessorService {
 
     this.logger.info({ recipientId }, "Successfully processed user profile updated event");
   }
+
+  // ========================================================================
+  // 1.8 HANDLE ADMIN USER UPDATED
+  // ========================================================================
+  async handleAdminUserUpdated(data: any) {
+    const recipientId = data.user_id;
+
+    this.logger.info(
+      { recipientId },
+      "Handling admin user updated event",
+    );
+
+    if (!recipientId) return;
+
+    // Step A: Check Preferences
+    const prefs = await this.getUserPreferences(recipientId);
+
+    // Step B: In-App Notification
+    if (prefs.channels.inApp) {
+      await this.notificationModel.create({
+        recipientId,
+        actorId: "system", // Admin triggered
+        actionType: ActionType.SYSTEM_ALERT,
+        entityType: EntityType.USER,
+        entityId: recipientId,
+        metadata: {
+          message: "An administrator has updated your account details and role permissions.",
+        },
+      });
+      this.logger.info({ recipientId }, "Created admin update in-app notification");
+    }
+
+    // Step C: Email Dispatch
+    // Check if security notifications are opted into
+    if (prefs.categories.account_security) {
+      if (prefs.channels.email && data.email) {
+        await this.emailService.sendAdminUpdateEmail({
+          email: data.email,
+          name: `${data.first_name} ${data.last_name}`.trim(),
+          role: data.role,
+        });
+        this.logger.info(
+          `[MOCK] Sending Admin Update Email to ${data.email} for user ${recipientId}`,
+        );
+      }
+    } else {
+      this.logger.debug(
+        { recipientId },
+        "User opted out of account security notifications. Dropping admin update email alert.",
+      );
+    }
+
+    this.logger.info({ recipientId }, "Successfully processed admin user updated event");
+  }
 }

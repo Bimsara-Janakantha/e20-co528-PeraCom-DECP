@@ -110,6 +110,12 @@ export class NotificationConsumerService
           break;
         }
 
+        case "identity.admin_user.updated": {
+          this.logger.debug(`Admin updated user profile: ${event.data.user_id}`);
+          await this.processorService.handleAdminUserUpdated(event.data);
+          break;
+        }
+
         case "identity.batch_users.suspended": {
           this.logger.info(
             { count: event.data.count, batch: event.data.batch, actorId: event.actorId },

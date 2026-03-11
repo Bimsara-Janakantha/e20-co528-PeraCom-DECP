@@ -181,4 +181,18 @@ export class EmailService implements OnModuleInit {
 
     await this.sendMail(payload.email, subject, html);
   }
+
+  /* Function to send admin triggered profile updated email */
+  async sendAdminUpdateEmail(payload: { email: string; name: string; role: string }) {
+    const subject = "Account Information Update - PeraCom DECP";
+
+    let html = this.loadTemplate("admin-user-update");
+
+    html = html
+      .replaceAll("{{FULL_NAME}}", payload.name)
+      .replaceAll("{{EMAIL}}", payload.email)
+      .replaceAll("{{ROLE}}", payload.role);
+
+    await this.sendMail(payload.email, subject, html);
+  }
 }
