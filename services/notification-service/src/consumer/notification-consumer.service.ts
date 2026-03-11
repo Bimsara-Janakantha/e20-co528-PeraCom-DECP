@@ -74,20 +74,9 @@ export class NotificationConsumerService
           break;
         }
 
-        case "identity.user_list.retrieved": {
-          this.logger.debug(
-            `Received event [${event.eventType}] from topic [${topic}] with data: ${JSON.stringify(event.data)}`,
-          );
-          this.logger.info(
-            `Admin user ${event.actorId} retrieved the ${event.data.count} user list.`,
-          );
-          // await this.processorService.handleUserListRetrieved(event.data);
-          break;
-        }
-
         default:
+          // We safely ignore events we don't care about.
           this.logger.warn(`Unhandled event type: ${event.eventType}`);
-        // We safely ignore events we don't care about.
       }
     } catch (error) {
       this.logger.error(
