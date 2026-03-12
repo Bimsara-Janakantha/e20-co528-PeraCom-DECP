@@ -20,7 +20,7 @@ import { CreateBulkDto } from "./dto/create-bulk.dto.js";
 import { BulkSuspendDto } from "./dto/suspend-bulk.dto.js";
 import { UpdateProfileDto } from "./dto/update-profile.dto.js";
 import { UpdateRolesDto, UpdateUserAdminDto } from "./dto/update-admin.dto.js";
-import { QueryUsersDto } from "./dto/query-users.dto.js";
+import { QueryUsersDto, UserSummaryDto } from "./dto/query-users.dto.js";
 
 @Controller("users")
 export class UsersController {
@@ -143,6 +143,14 @@ export class UsersController {
       correlationId,
       userData,
     );
+  }
+
+  // GET /users/summary
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("STUDENT", "ALUMNI", "ADMIN")
+  @Get("summary")
+  getUsersSummary(@Query() query: UserSummaryDto) {
+    return this.usersService.getUserSummary(query.users);
   }
 
   // GET /users/me

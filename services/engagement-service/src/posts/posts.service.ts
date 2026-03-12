@@ -173,6 +173,18 @@ export class PostsService {
       { correlationId, userId, fileCount: files.length },
       "Creating post with media attachments",
     );
+    console.log(
+      "Received files:",
+      files.map((f) => f.originalname),
+    );
+    console.log(
+      "Mimetypes:",
+      files.map((f) => f.mimetype),
+    );
+    console.log(
+      "File sizes:",
+      files.map((f) => f.size),
+    );
 
     // ✨ Track uploaded object names so we know exactly what to delete if something fails
     const uploadedObjectNames: string[] = [];
@@ -194,7 +206,9 @@ export class PostsService {
 
     // Rule 2: Max 10 images
     if (imageFiles.length > env.MAX_ALLOWED_FILES) {
-      throw new BadRequestException(`Maximum ${env.MAX_ALLOWED_FILES} images allowed`);
+      throw new BadRequestException(
+        `Maximum ${env.MAX_ALLOWED_FILES} images allowed`,
+      );
     }
 
     // Rule 3: Max 1 video

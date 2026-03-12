@@ -14,7 +14,7 @@ import { env } from "../config/validateEnv.config.js";
 
   providers: [
     makeCounterProvider({
-      name: `${env.SERVICE_NAME}_requests_total`,
+      name: "engagement_service_requests_total",
       help: "Total HTTP requests",
     }),
   ],

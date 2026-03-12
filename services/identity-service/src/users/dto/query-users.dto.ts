@@ -1,5 +1,12 @@
-import { Type } from "class-transformer";
-import { IsOptional, IsString, IsEnum, IsNumber } from "class-validator";
+import { Transform, Type } from "class-transformer";
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsNotEmpty,
+  IsArray,
+} from "class-validator";
 import { SortOptions, SortOrder, UserRole } from "../schemas/user.schema.js";
 
 export class QueryUsersDto {
@@ -28,4 +35,14 @@ export class QueryUsersDto {
   @IsOptional()
   @IsEnum(SortOrder)
   sortOrder?: SortOrder;
+}
+
+export class UserSummaryDto {
+  @IsNotEmpty()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    return Array.isArray(value) ? value : [value];
+  })
+  users!: string[];
 }
