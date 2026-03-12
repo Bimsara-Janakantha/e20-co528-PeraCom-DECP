@@ -193,8 +193,8 @@ export class PostsService {
     }
 
     // Rule 2: Max 10 images
-    if (imageFiles.length > 10) {
-      throw new BadRequestException("Maximum 10 images allowed");
+    if (imageFiles.length > env.MAX_ALLOWED_FILES) {
+      throw new BadRequestException(`Maximum ${env.MAX_ALLOWED_FILES} images allowed`);
     }
 
     // Rule 3: Max 1 video

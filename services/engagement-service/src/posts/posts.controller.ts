@@ -32,7 +32,7 @@ export class PostsController {
   @UseGuards(JwtAuthGuard)
   @Post()
   @UseInterceptors(
-    FilesInterceptor("media", 10, {
+    FilesInterceptor("media", env.MAX_ALLOWED_FILES, {
       limits: {
         fileSize: env.MAX_FILE_SIZE_MB * 1024 * 1024, // 20MB limit
       },
@@ -89,7 +89,7 @@ export class PostsController {
   // PATCH /posts
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(
-    FilesInterceptor("media", 10, {
+    FilesInterceptor("media", env.MAX_ALLOWED_FILES, {
       limits: {
         fileSize: env.MAX_FILE_SIZE_MB * 1024 * 1024,
       },
