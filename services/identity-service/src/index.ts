@@ -34,6 +34,7 @@ async function bootstrap() {
   // 6. The trace logging interceptor
   app.useGlobalInterceptors(new TraceLoggingInterceptor());
 
+  // 7. Start the application
   await app.listen(env.NODE_PORT);
 }
 

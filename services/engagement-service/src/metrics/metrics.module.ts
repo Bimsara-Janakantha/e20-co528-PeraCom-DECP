@@ -3,6 +3,7 @@ import {
   makeCounterProvider,
   PrometheusModule,
 } from "@willsoto/nestjs-prometheus";
+import { env } from "../config/validateEnv.config.js";
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import {
 
   providers: [
     makeCounterProvider({
-      name: "engagement_service_requests_total",
+      name: `${env.SERVICE_NAME}_requests_total`,
       help: "Total HTTP requests",
     }),
   ],

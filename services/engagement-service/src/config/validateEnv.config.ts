@@ -16,11 +16,12 @@ const bootLogger = pino({
 function getValidatedEnv() {
   // 1. Define strictly what is required to boot the app
   const requiredVars = [
+    "ENVIRONMENT",
     "JWT_SECRET",
     "KAFKA_BROKER",
     "OTEL_EXPORTER_OTLP_ENDPOINT",
     "MONGO_URI",
-    "LOG_LEVEL",
+    "SERVICE_NAME",
     "MINIO_ENDPOINT",
     "MINIO_PORT",
     "MINIO_ACCESS_KEY",
@@ -28,7 +29,6 @@ function getValidatedEnv() {
     "MINIO_PUBLIC_URL",
     "EDIT_POST_TIME_LIMIT_MINUTES",
     "MAX_FILE_SIZE_MB",
-    "ENVIRONMENT",
   ] as const;
 
   const missing = requiredVars.filter((key) => !process.env[key]);
@@ -44,13 +44,14 @@ function getValidatedEnv() {
   // 2. Return the guaranteed values
   return {
     // This stops TypeScript from complaining about `string | undefined`.
+    ENVIRONMENT: process.env.ENVIRONMENT as string,
     NODE_PORT: parseInt(process.env.NODE_PORT as string, 10),
     KAFKA_BROKER: process.env.KAFKA_BROKER as string,
     JWT_SECRET: process.env.JWT_SECRET as string,
     OTEL_EXPORTER_OTLP_ENDPOINT: process.env
       .OTEL_EXPORTER_OTLP_ENDPOINT as string,
     MONGO_URI: process.env.MONGO_URI as string,
-    LOG_LEVEL: process.env.LOG_LEVEL as string,
+    SERVICE_NAME: process.env.SERVICE_NAME as string,
     MINIO_ENDPOINT: process.env.MINIO_ENDPOINT as string,
     MINIO_PORT: process.env.MINIO_PORT as string,
     MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY as string,
@@ -61,7 +62,6 @@ function getValidatedEnv() {
       10,
     ),
     MAX_FILE_SIZE_MB: parseInt(process.env.MAX_FILE_SIZE_MB as string, 10),
-    ENVIRONMENT: process.env.ENVIRONMENT as string,
   };
 }
 
