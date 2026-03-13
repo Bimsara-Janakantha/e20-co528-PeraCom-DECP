@@ -8,9 +8,9 @@ import {
 
 export class CreatePostDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(2000)
-  content!: string;
+  content?: string;
 }
 
 export class UpdatePostDto {

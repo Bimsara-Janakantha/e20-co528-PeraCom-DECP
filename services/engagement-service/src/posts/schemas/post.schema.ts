@@ -17,19 +17,14 @@ export class Post {
   @Prop({ required: true })
   authorId!: string;
 
-  @Prop({
-    required: function (this: PostDocument) {
-      return !this.originalPostId;
-    },
-    maxlength: 2000,
-  })
+  @Prop({ required: false, maxlength: 2000 })
   content?: string;
 
   @Prop({ type: [String], default: [] })
-  images!: string[];
+  images?: string[];
 
   @Prop({ type: String, default: null })
-  video!: string | null;
+  video?: string | null;
 
   @Prop({ default: 0 })
   totalReactions!: number;

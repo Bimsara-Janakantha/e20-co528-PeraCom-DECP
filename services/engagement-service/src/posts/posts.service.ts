@@ -174,6 +174,13 @@ export class PostsService {
       throw new BadRequestException("Only 1 video allowed");
     }
 
+    // Rule 4: If no images or videos content must be provided
+    if (files.length === 0 && (!dto.content || dto.content.trim().length === 0)) {
+      throw new BadRequestException(
+        "Post must have content or at least one media attachment",
+      );
+    }
+
     try {
       // 4. Upload images
       for (const file of imageFiles) {
@@ -434,7 +441,7 @@ export class PostsService {
         throw new BadRequestException("Only 1 video allowed");
 
       // Mark old media for deletion (we will delete these ONLY if the DB saves successfully)
-      if (post.images?.length > 0) oldMediaToCleanup.push(...post.images);
+      if (post.images && post.images.length > 0) oldMediaToCleanup.push(...post.images);
       if (post.video) oldMediaToCleanup.push(post.video);
 
       // Upload new images
