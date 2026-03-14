@@ -62,4 +62,69 @@ export class EngagementNotificationService {
       "Successfully processed new post created event",
     );
   }
+
+  // ========================================================================
+  // 2.1 HANDLE POST REPOSTED (Notify Original Author)
+  // ========================================================================
+  async handlePostReposted(actorId: string, data: any) {
+    const recipientId = data.original_author_id;
+
+    this.logger.info(
+      { recipientId, actorId, isQuote: data.is_quote },
+      "Handling post reposted event",
+    );
+
+    // 1. Guard Clause: Don't notify a user for reposting their own content
+    if (actorId === recipientId) {
+      this.logger.debug(
+        { actorId },
+        "User reposted their own post. Dropping notification.",
+      );
+      return;
+    }
+
+    // 2. Check User Preferences
+    const prefs = await this.preferenceService.getPreferences(recipientId);
+
+    // Assuming you have an engagement/social category in your preferences
+    if (!prefs.channels.inApp || !prefs.categories.social_interactions) {
+      this.logger.debug(
+        { recipientId },
+        "User opted out of in-app engagement notifications. Dropping alert.",
+      );
+      return;
+    }
+
+    // 3. Craft the Message
+    const actionText = data.is_quote ? "quoted" : "reposted";
+    // Note: If you resolve the actor's name earlier in the pipeline, you can use it here!
+    // Otherwise, a generic message works, or the frontend can resolve the actorId to a name.
+    const message = `Someone ${actionText} your post.`;
+
+    // 4. Create the In-App Notification
+    try {
+      await this.notificationModel.create({
+        recipientId,
+        actorId,
+        actionType: ActionType.POST_REPOSTED,
+        entityType: EntityType.POST,
+        entityId: data.original_post_id,
+        metadata: {
+          message,
+          new_post_id: data.new_post_id,
+          is_quote: data.is_quote,
+        },
+      });
+
+      this.logger.info(
+        { recipientId, actorId },
+        `Successfully created ${actionText} in-app notification`,
+      );
+    } catch (error) {
+      this.logger.error(
+        { error, recipientId, actorId },
+        "Failed to create repost notification",
+      );
+    }
+  }
 }

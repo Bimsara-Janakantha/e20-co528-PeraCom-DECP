@@ -394,6 +394,7 @@ export class PostsService {
         data: {
           new_post_id: savedRepost._id.toString(),
           original_post_id: rootPostId.toString(),
+          original_author_id: originalPost.authorId.toString(),
           is_quote: isQuote,
         },
       };
