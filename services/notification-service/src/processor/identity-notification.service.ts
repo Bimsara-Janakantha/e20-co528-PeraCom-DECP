@@ -8,11 +8,8 @@ import {
   EntityType,
   type NotificationDocument,
 } from "../notifications/schemas/notification.schema.js";
-import {
-  NotificationPreference,
-  type NotificationPreferenceDocument,
-} from "../preferences/schemas/preference.schema.js";
 import { EmailService } from "../emails/email.service.js";
+import { PreferencesService } from "../preferences/preferences.service.js";
 
 type LoginEventData = {
   user_id: string;
@@ -23,30 +20,16 @@ type LoginEventData = {
 };
 
 @Injectable()
-export class NotificationProcessorService {
+export class IdentityNotificationService {
   constructor(
-    @InjectPinoLogger(NotificationProcessorService.name)
+    @InjectPinoLogger(IdentityNotificationService.name)
     private readonly logger: PinoLogger,
+
     @InjectModel(Notification.name)
     private readonly notificationModel: Model<NotificationDocument>,
-    @InjectModel(NotificationPreference.name)
-    private readonly preferenceModel: Model<NotificationPreferenceDocument>,
     private readonly emailService: EmailService,
+    private readonly preferenceService: PreferencesService,
   ) {}
-
-  // ========================================================================
-  // THE PREFERENCE ENGINE
-  // ========================================================================
-  private async getUserPreferences(userId: string) {
-    // We try to find their explicit preferences. If they haven't set any,
-    // the Mongoose default values (everything turned ON) will apply.
-    let prefs = await this.preferenceModel.findOne({ userId }).lean().exec();
-
-    if (!prefs) {
-      prefs = new this.preferenceModel({ userId }).toObject();
-    }
-    return prefs;
-  }
 
   // ========================================================================
   // 1.1 HANDLE USER LOGIN (Account Security)
@@ -66,7 +49,7 @@ export class NotificationProcessorService {
     }
 
     // Get user preference for notifications
-    const prefs = await this.getUserPreferences(recipientId);
+    const prefs = await this.preferenceService.getPreferences(recipientId);
     if (!prefs.categories.account_security) {
       this.logger.debug(
         { recipientId },
@@ -132,7 +115,7 @@ export class NotificationProcessorService {
     // Step A: Initialize the user's NotificationPreference document in MongoDB with defaults
     let prefs;
     try {
-      prefs = await this.preferenceModel.create({ userId: recipientId });
+      prefs = await this.preferenceService.createUser(recipientId);
       this.logger.info(
         { recipientId },
         "Created default notification preferences for new user",
@@ -193,15 +176,6 @@ export class NotificationProcessorService {
 
     if (!users || users.length === 0) return;
 
-    // 1. Bulk Prepare Preferences
-    const preferenceOps = users.map((user) => ({
-      updateOne: {
-        filter: { userId: user.user_id },
-        update: { $setOnInsert: { userId: user.user_id } },
-        upsert: true,
-      },
-    }));
-
     // 2. Bulk Prepare In-App Alerts
     const notificationDocs = users.map((user) => ({
       recipientId: user.user_id,
@@ -218,7 +192,7 @@ export class NotificationProcessorService {
     try {
       // Fire database operations in parallel
       await Promise.all([
-        this.preferenceModel.bulkWrite(preferenceOps),
+        this.preferenceService.createBulkUsers(users),
         this.notificationModel.insertMany(notificationDocs),
       ]);
 
@@ -424,15 +398,12 @@ export class NotificationProcessorService {
   async handleUserProfileUpdated(data: any) {
     const recipientId = data.user_id;
 
-    this.logger.info(
-      { recipientId },
-      "Handling user profile updated event",
-    );
+    this.logger.info({ recipientId }, "Handling user profile updated event");
 
     if (!recipientId) return;
 
     // Step A: Check Preferences
-    const prefs = await this.getUserPreferences(recipientId);
+    const prefs = await this.preferenceService.getPreferences(recipientId);
 
     // Step B: In-App Notification
     if (prefs.channels.inApp) {
@@ -446,7 +417,10 @@ export class NotificationProcessorService {
           message: "Your profile details have been successfully updated.",
         },
       });
-      this.logger.info({ recipientId }, "Created profile updated in-app notification");
+      this.logger.info(
+        { recipientId },
+        "Created profile updated in-app notification",
+      );
     }
 
     // Step C: Email Dispatch
@@ -468,7 +442,10 @@ export class NotificationProcessorService {
       );
     }
 
-    this.logger.info({ recipientId }, "Successfully processed user profile updated event");
+    this.logger.info(
+      { recipientId },
+      "Successfully processed user profile updated event",
+    );
   }
 
   // ========================================================================
@@ -477,15 +454,12 @@ export class NotificationProcessorService {
   async handleAdminUserUpdated(data: any) {
     const recipientId = data.user_id;
 
-    this.logger.info(
-      { recipientId },
-      "Handling admin user updated event",
-    );
+    this.logger.info({ recipientId }, "Handling admin user updated event");
 
     if (!recipientId) return;
 
     // Step A: Check Preferences
-    const prefs = await this.getUserPreferences(recipientId);
+    const prefs = await this.preferenceService.getPreferences(recipientId);
 
     // Step B: In-App Notification
     if (prefs.channels.inApp) {
@@ -496,10 +470,14 @@ export class NotificationProcessorService {
         entityType: EntityType.USER,
         entityId: recipientId,
         metadata: {
-          message: "An administrator has updated your account details and role permissions.",
+          message:
+            "An administrator has updated your account details and role permissions.",
         },
       });
-      this.logger.info({ recipientId }, "Created admin update in-app notification");
+      this.logger.info(
+        { recipientId },
+        "Created admin update in-app notification",
+      );
     }
 
     // Step C: Email Dispatch
@@ -522,7 +500,10 @@ export class NotificationProcessorService {
       );
     }
 
-    this.logger.info({ recipientId }, "Successfully processed admin user updated event");
+    this.logger.info(
+      { recipientId },
+      "Successfully processed admin user updated event",
+    );
   }
 
   // ========================================================================
@@ -542,7 +523,7 @@ export class NotificationProcessorService {
       recipientId: user.user_id,
       actorId: actorId || "system", // Admin triggered
       actionType: ActionType.SYSTEM_ALERT,
-      entityType: EntityType.USER, 
+      entityType: EntityType.USER,
       entityId: "role_update",
       metadata: {
         message: `Your account role has been updated to ${role} by administration.`,
@@ -551,39 +532,45 @@ export class NotificationProcessorService {
 
     try {
       await this.notificationModel.insertMany(notificationDocs);
-      this.logger.info("Successfully created in-app role update alerts for batch");
-      
+      this.logger.info(
+        "Successfully created in-app role update alerts for batch",
+      );
+
       const CHUNK_SIZE = 25; // Send 25 emails at a time
-      
+
       // Action 2 & 3: Chunked Email Sending
       for (let i = 0; i < users.length; i += CHUNK_SIZE) {
         const chunk = users.slice(i, i + CHUNK_SIZE);
-        
+
         await Promise.allSettled(
           chunk.map(async (user) => {
             if (!user.email) return;
-            
+
             // Explicitly check preferences for each user in the batch
-            const prefs = await this.getUserPreferences(user.user_id);
+            const prefs = await this.preferenceService.getPreferences(
+              user.user_id,
+            );
             if (prefs.channels.email && prefs.categories.account_security) {
-              return this.emailService.sendBulkRoleUpdateEmail({
-                email: user.email,
-                name: `${user.first_name} ${user.last_name}`.trim(),
-                role: role // The new role globally applied
-              }).then(() => {
-                this.logger.info(
-                  `[MOCK] Sending Bulk Role Update Email to ${user.email} for user ${user.user_id}`,
-                );
-              });
+              return this.emailService
+                .sendBulkRoleUpdateEmail({
+                  email: user.email,
+                  name: `${user.first_name} ${user.last_name}`.trim(),
+                  role: role, // The new role globally applied
+                })
+                .then(() => {
+                  this.logger.info(
+                    `[MOCK] Sending Bulk Role Update Email to ${user.email} for user ${user.user_id}`,
+                  );
+                });
             } else {
               this.logger.debug(
                 { recipientId: user.user_id },
                 "User opted out of account security notifications. Dropping admin update email alert.",
               );
             }
-          })
+          }),
         );
-        
+
         // Small delay to let the SMTP connection pool breathe between chunks
         await new Promise((resolve) => setTimeout(resolve, 100));
       }

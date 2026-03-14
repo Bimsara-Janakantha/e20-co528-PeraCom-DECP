@@ -6,7 +6,8 @@ import {
 import { createConsumer, startConsuming } from "@decp/event-bus";
 import type { BaseEvent, Consumer } from "@decp/event-bus";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
-import { NotificationProcessorService } from "../processor/notification-processor.service.js";
+import { IdentityNotificationService } from "../processor/identity-notification.service.js";
+import { EngagementNotificationService } from "../processor/engagement-notification.service.js";
 import { env } from "../config/validateEnv.config.js";
 
 @Injectable()
@@ -18,7 +19,8 @@ export class NotificationConsumerService
   constructor(
     @InjectPinoLogger(NotificationConsumerService.name)
     private readonly logger: PinoLogger,
-    private readonly processorService: NotificationProcessorService,
+    private readonly identityProcessor: IdentityNotificationService,
+    private readonly engagementProcessor: EngagementNotificationService,
   ) {}
 
   // ========================================================================
@@ -64,79 +66,102 @@ export class NotificationConsumerService
         // --- IDENTITY EVENTS ---
         case "identity.user.login": {
           this.logger.debug(`User logged in: ${event.data.user_id}`);
-          await this.processorService.handleUserLogin(event.data);
+          await this.identityProcessor.handleUserLogin(event.data);
           break;
         }
 
         case "identity.user.created": {
           this.logger.debug(`New user created: ${event.data.user_id}`);
-          await this.processorService.handleUserCreated(event.data);
+          await this.identityProcessor.handleUserCreated(event.data);
           break;
         }
 
         case "identity.batch_users.created": {
           this.logger.info(
             { count: event.data.count, actorId: event.actorId },
-            "New users batch created."
+            "New users batch created.",
           );
-          await this.processorService.handleBatchUserCreated(
+          await this.identityProcessor.handleBatchUserCreated(
             event.data.users,
-            event.actorId
+            event.actorId,
           );
           break;
         }
 
         case "identity.user.reactivate": {
           this.logger.debug(`User reactivated: ${event.data.user_id}`);
-          await this.processorService.handleUserReactivated(event.data);
+          await this.identityProcessor.handleUserReactivated(event.data);
           break;
         }
 
         case "identity.user.suspended": {
           this.logger.info(
             { actorId: event.actorId },
-            `User suspended: ${event.data.user_id}`
+            `User suspended: ${event.data.user_id}`,
           );
-          await this.processorService.handleUserSuspended(
+          await this.identityProcessor.handleUserSuspended(
             event.data,
-            event.actorId
+            event.actorId,
           );
           break;
         }
 
         case "identity.user_profile.updated": {
           this.logger.debug(`User profile updated: ${event.data.user_id}`);
-          await this.processorService.handleUserProfileUpdated(event.data);
+          await this.identityProcessor.handleUserProfileUpdated(event.data);
           break;
         }
 
         case "identity.admin_user.updated": {
-          this.logger.debug(`Admin updated user profile: ${event.data.user_id}`);
-          await this.processorService.handleAdminUserUpdated(event.data);
+          this.logger.debug(
+            `Admin updated user profile: ${event.data.user_id}`,
+          );
+          await this.identityProcessor.handleAdminUserUpdated(event.data);
           break;
         }
 
         case "identity.batch_users.suspended": {
           this.logger.info(
-            { count: event.data.count, batch: event.data.batch, actorId: event.actorId },
-            "Batch users suspended."
+            {
+              count: event.data.count,
+              batch: event.data.batch,
+              actorId: event.actorId,
+            },
+            "Batch users suspended.",
           );
-          await this.processorService.handleBatchSuspension(
+          await this.identityProcessor.handleBatchSuspension(
             event.data.users,
-            event.actorId
+            event.actorId,
           );
           break;
         }
 
         case "identity.batch_users.updated": {
           this.logger.info(
-            { count: event.data.count, batch: event.data.batch, role: event.data.role, actorId: event.actorId },
-            "Batch users role updated."
+            {
+              count: event.data.count,
+              batch: event.data.batch,
+              role: event.data.role,
+              actorId: event.actorId,
+            },
+            "Batch users role updated.",
           );
-          await this.processorService.handleBatchRoleUpdate(
+          await this.identityProcessor.handleBatchRoleUpdate(
             event.data.role,
             event.data.users,
-            event.actorId
+            event.actorId,
+          );
+          break;
+        }
+
+        // --- ENGAGEMENT EVENTS ---
+        case "engagement.post.created": {
+          this.logger.info(
+            `New post created: ${event.data.post_id} by user ${event.actorId}`,
+          );
+          await this.engagementProcessor.handlePostCreated(
+            event.data.post_id,
+            event.actorId,
           );
           break;
         }
