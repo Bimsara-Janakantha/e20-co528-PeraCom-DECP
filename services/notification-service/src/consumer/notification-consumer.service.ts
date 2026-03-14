@@ -177,6 +177,17 @@ export class NotificationConsumerService
           break;
         }
 
+        case "engagement.post.deleted": {
+          this.logger.info(
+            `Post deleted: ${event.data.post_id} by user ${event.actorId}`,
+          );
+          await this.engagementProcessor.handlePostDeleted(
+            event.actorId!,
+            event.data,
+          );
+          break;
+        }
+
         default:
           // We safely ignore events we don't care about.
           this.logger.warn(`Unhandled event type: ${event.eventType}`);

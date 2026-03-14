@@ -791,6 +791,7 @@ export class PostsService {
       actorId: actorId,
       data: {
         post_id: postId,
+        author_id: deletedPost.authorId.toString(),
         deleted_by_admin: true,
       },
     };

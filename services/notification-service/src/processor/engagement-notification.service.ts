@@ -127,4 +127,67 @@ export class EngagementNotificationService {
       );
     }
   }
+
+  // ========================================================================
+  // 2.2 HANDLE DELETE POST BY ADMIN (Notify Original Author)
+  // ========================================================================
+  async handlePostDeleted(actorId: string, data: any) {
+    const recipientId = data.author_id; // The user whose post was deleted
+
+    this.logger.info(
+      {
+        postId: data.post_id,
+        actorId,
+        recipientId,
+        isAdmin: data.deleted_by_admin,
+      },
+      "Handling admin post deleted event",
+    );
+
+    // 1. Guard Clause: We only care about admin deletions for notifications
+    if (!data.deleted_by_admin) {
+      this.logger.debug(
+        { postId: data.post_id },
+        "Post was self-deleted. Dropping notification.",
+      );
+      return;
+    }
+
+    if (!recipientId) {
+      this.logger.error(
+        { payload: data },
+        "Cannot process admin deletion: author_id is missing from payload",
+      );
+      return;
+    }
+
+    // 2. Fetch User Preferences (Mainly for email routing on moderation actions)
+    const prefs = await this.preferenceService.getPreferences(recipientId);
+
+    // 3. Create In-App Notification (Always forced for admin moderation)
+    try {
+      await this.notificationModel.create({
+        recipientId,
+        actorId: actorId, // The admin who did it
+        actionType: ActionType.SYSTEM_ALERT,
+        entityType: EntityType.POST,
+        entityId: data.post_id, // Keep the ID for reference/auditing
+        metadata: {
+          message:
+            "One of your posts has been removed by an administrator for violating community guidelines.",
+          deleted_by_admin: true,
+        },
+      });
+
+      this.logger.info(
+        { recipientId, postId: data.post_id },
+        "Successfully created admin-deletion in-app notification",
+      );
+    } catch (error) {
+      this.logger.error(
+        { error, recipientId, postId: data.post_id },
+        "Failed to create admin-deletion in-app notification",
+      );
+    }
+  }
 }
