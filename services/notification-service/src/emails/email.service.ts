@@ -77,7 +77,7 @@ export class EmailService implements OnModuleInit {
 
   private async sendMail(to: string, subject: string, html: string) {
     try {
-      /* const info = await this.transporter.sendMail({
+      const info = await this.transporter.sendMail({
         from: env.SMTP_FROM,
         to,
         subject,
@@ -86,7 +86,7 @@ export class EmailService implements OnModuleInit {
       this.logger.debug(
         { messageId: info.messageId, to },
         "Email dispatched successfully",
-      ); */
+      );
       this.logger.debug(
         { to, subject },
         "Email dispatch simulated (no actual send)",
@@ -183,7 +183,11 @@ export class EmailService implements OnModuleInit {
   }
 
   /* Function to send admin triggered profile updated email */
-  async sendAdminUpdateEmail(payload: { email: string; name: string; role: string }) {
+  async sendAdminUpdateEmail(payload: {
+    email: string;
+    name: string;
+    role: string;
+  }) {
     const subject = "Account Information Update - PeraCom DECP";
 
     let html = this.loadTemplate("admin-user-update");
@@ -197,7 +201,11 @@ export class EmailService implements OnModuleInit {
   }
 
   /* Function to send admin triggered bulk role updated email */
-  async sendBulkRoleUpdateEmail(payload: { email: string; name: string; role: string }) {
+  async sendBulkRoleUpdateEmail(payload: {
+    email: string;
+    name: string;
+    role: string;
+  }) {
     const subject = "Account Role Updated - PeraCom DECP";
 
     let html = this.loadTemplate("bulk-role-update");
