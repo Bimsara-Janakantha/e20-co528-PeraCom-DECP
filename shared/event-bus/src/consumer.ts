@@ -20,7 +20,11 @@ export async function createConsumer(
     },
   });
 
-  const consumer = kafka.consumer({ groupId, sessionTimeout: 30000 });
+  const consumer = kafka.consumer({
+    groupId,
+    sessionTimeout: 30000,
+    maxWaitTimeInMs: 5000,
+  });
 
   await consumer.connect();
 

@@ -38,7 +38,7 @@ export class CommentsController {
     );
   }
 
-  // GET /comments/post/:postId?cursor=xxx&limit=10
+  // GET /comments/:postId?cursor=xxx&limit=10
   @UseGuards(JwtAuthGuard)
   @Get(":postId")
   async getCommentsByPostId(

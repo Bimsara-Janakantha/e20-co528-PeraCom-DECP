@@ -18,7 +18,6 @@ import {
   ],
   controllers: [PreferencesController],
   providers: [PreferencesService],
-  // ✨ Export MongooseModule so the Processor can inject the Preference model!
-  exports: [MongooseModule],
+  exports: [PreferencesService],
 })
 export class PreferencesModule {}

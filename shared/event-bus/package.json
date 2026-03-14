@@ -1,6 +1,6 @@
 {
   "name": "@decp/event-bus",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Event bus for communication between kafka events",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -4,18 +4,22 @@ import { Document } from "mongoose";
 export type NotificationDocument = Notification & Document;
 
 export enum ActionType {
+  USER_LOGGED_IN = "USER_LOGGED_IN",
+  SYSTEM_ALERT = "SYSTEM_ALERT",
+  POST_REPOSTED = "POST_REPOSTED",
   INVITED = "INVITED",
   JOINED = "JOINED",
   REQUESTED_TO_JOIN = "REQUESTED_TO_JOIN",
   LIKED = "LIKED",
   COMMENTED = "COMMENTED",
   MESSAGE_RECEIVED = "MESSAGE_RECEIVED",
-  SYSTEM_ALERT = "SYSTEM_ALERT",
 }
 
 export enum EntityType {
+  USER = "USER",
   PROJECT = "PROJECT",
   POST = "POST",
+  COMMENT = "COMMENT",
   JOB = "JOB",
   EVENT = "EVENT",
   MESSAGE = "MESSAGE",

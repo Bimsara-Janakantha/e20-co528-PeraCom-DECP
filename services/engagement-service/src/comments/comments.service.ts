@@ -336,6 +336,7 @@ export class CommentsService {
         data: {
           post_id: deletedComment.postId.toString(),
           comment_id: deletedComment._id.toString(),
+          author_id: deletedComment.authorId.toString(),
           deleted_by_admin: true,
         },
       };

@@ -29,7 +29,7 @@ import { WorkersModule } from "./workers/workers.module.js";
     // Sets up structured logging with Pino
     LoggerModule.forRoot({
       pinoHttp: {
-        level: env.LOG_LEVEL,
+        level: env.ENVIRONMENT === "production" ? "info" : "debug",
         ...(env.ENVIRONMENT !== "production" && {
           transport: {
             target: "pino-pretty",

@@ -3,14 +3,15 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUrl,
   MaxLength,
 } from "class-validator";
 
 export class CreatePostDto {
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(2000)
-  content!: string;
+  content?: string;
 }
 
 export class UpdatePostDto {
@@ -22,6 +23,12 @@ export class UpdatePostDto {
   @IsString()
   @MaxLength(2000)
   content?: string;
+
+  @IsOptional()
+  imageUrls?: string[] | null;
+
+  @IsOptional()
+  videoUrl?: string | null;
 }
 
 export class RepostDto {

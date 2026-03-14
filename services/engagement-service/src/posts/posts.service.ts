@@ -19,6 +19,10 @@ import type {
   UpdatePostDto,
 } from "./dto/post.dto.js";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
+import {
+  Reaction,
+  type ReactionDocument,
+} from "../reaction/schemas/reaction.schema.js";
 
 @Injectable()
 export class PostsService {
@@ -29,59 +33,14 @@ export class PostsService {
     @InjectModel(Post.name)
     private readonly postModel: Model<PostDocument>,
 
+    @InjectModel(Reaction.name)
+    private readonly reactionModel: Model<ReactionDocument>,
+
     private readonly minioService: MinioService,
 
     @InjectMetric("engagement_posts_created_total")
     private postCounter: Counter<string>,
   ) {}
-
-  // =================================================
-  // Post Retrieval with Pagination
-  // =================================================
-  async getPostById(
-    actorId: string,
-    correlationId: string,
-    postId: string,
-  ): Promise<Post> {
-    // 1. Validate postId format
-    if (!Types.ObjectId.isValid(postId)) {
-      throw new BadRequestException("Invalid post ID");
-    }
-    this.logger.info({ correlationId, postId }, "Fetching post by ID");
-
-    // 2. Fetch post from database
-    const post = await this.postModel.findById(postId).lean().exec();
-
-    // 3. Handle not found case
-    if (!post) throw new NotFoundException("Post not found!");
-
-    // 4. Increment Prometheus metric
-    this.postCounter.inc();
-
-    // 5. Emit an event or log for further processing
-    const viewEvent: BaseEvent<any> = {
-      eventId: uuidv7(),
-      eventType: "engagement.post.viewed",
-      eventVersion: "1.0",
-      timestamp: new Date().toISOString(),
-      producer: "engagement-service",
-      correlationId: correlationId,
-      actorId: actorId,
-      data: {
-        post_id: post._id,
-      },
-    };
-
-    publishEvent("engagement.post.viewed", viewEvent).catch((err) => {
-      this.logger.error(
-        { err, correlationId, postId: post._id },
-        "Failed to publish view event",
-      );
-    });
-
-    // 6. Return post data
-    return post;
-  }
 
   // =================================================
   // Cursor-based pagination for post listing
@@ -114,14 +73,45 @@ export class PostsService {
       .find(filter)
       .sort({ _id: -1 })
       .limit(safeLimit + 1) // Fetch one extra to check if there's a next page
+      .populate({
+        path: "originalPostId",
+        select: "content images video authorId updatedAt", // Select only needed fields for the UI
+      })
       .lean() // ✨ Maximum read performance
       .exec();
 
     // 4. Determine next cursor for pagination
-    const nextCursor =
-      posts.length > safeLimit
-        ? String(posts[posts.length - 2]?._id ?? "")
-        : null;
+    const hasNextPage = posts.length > safeLimit;
+    const resultPosts = hasNextPage ? posts.slice(0, safeLimit) : posts;
+
+    // 2. FETCH "MY REACTIONS"
+    // Collect all post IDs from the current page
+    const postIds = resultPosts.map((p) => p._id);
+
+    // Find all reactions by the current user for these specific posts
+    const myReactions = await this.reactionModel
+      .find({
+        postId: { $in: postIds },
+        userId: actorId,
+      })
+      .select("postId type")
+      .lean()
+      .exec();
+
+    // Create a Map for O(1) lookup: postId -> reactionType
+    const reactionMap = new Map(
+      myReactions.map((r) => [String(r.postId), r.type]),
+    );
+
+    // 3. MERGE REACTIONS INTO POST DATA
+    const finalData = resultPosts.map((post) => ({
+      ...post,
+      myReaction: reactionMap.get(String(post._id)) || null,
+    }));
+
+    const nextCursor = hasNextPage
+      ? String(resultPosts[resultPosts.length - 1]?._id)
+      : null;
 
     // 5. Increment Prometheus metric
     this.postCounter.inc();
@@ -152,7 +142,7 @@ export class PostsService {
 
     // 7. Return feed payload
     return {
-      data: posts,
+      data: finalData,
       nextCursor,
     };
   }
@@ -172,6 +162,18 @@ export class PostsService {
     this.logger.info(
       { correlationId, userId, fileCount: files.length },
       "Creating post with media attachments",
+    );
+    console.log(
+      "Received files:",
+      files.map((f) => f.originalname),
+    );
+    console.log(
+      "Mimetypes:",
+      files.map((f) => f.mimetype),
+    );
+    console.log(
+      "File sizes:",
+      files.map((f) => f.size),
     );
 
     // ✨ Track uploaded object names so we know exactly what to delete if something fails
@@ -193,8 +195,10 @@ export class PostsService {
     }
 
     // Rule 2: Max 10 images
-    if (imageFiles.length > 10) {
-      throw new BadRequestException("Maximum 10 images allowed");
+    if (imageFiles.length > env.MAX_ALLOWED_FILES) {
+      throw new BadRequestException(
+        `Maximum ${env.MAX_ALLOWED_FILES} images allowed`,
+      );
     }
 
     // Rule 3: Max 1 video
@@ -202,12 +206,21 @@ export class PostsService {
       throw new BadRequestException("Only 1 video allowed");
     }
 
+    // Rule 4: If no images or videos content must be provided
+    if (
+      files.length === 0 &&
+      (!dto.content || dto.content.trim().length === 0)
+    ) {
+      throw new BadRequestException(
+        "Post must have content or at least one media attachment",
+      );
+    }
+
     try {
       // 4. Upload images
       for (const file of imageFiles) {
-        const objectName = `posts/${Date.now()}-${file.originalname}`;
+        const objectName = `images/${Date.now()}_${file.originalname}`;
         const url = await this.minioService.uploadFile(
-          "posts-bucket",
           objectName,
           file.buffer,
           file.mimetype,
@@ -223,9 +236,8 @@ export class PostsService {
           throw new BadRequestException("Invalid video file");
         }
 
-        const objectName = `posts/${Date.now()}-${file.originalname}`;
+        const objectName = `videos/${Date.now()}_${file.originalname}`;
         video = await this.minioService.uploadFile(
-          "posts-bucket",
           objectName,
           file.buffer,
           file.mimetype,
@@ -311,6 +323,101 @@ export class PostsService {
   }
 
   // =================================================
+  // Create a Repost (Pure or Quote)
+  // =================================================
+  async repostPost(actorId: string, correlationId: string, payload: RepostDto) {
+    const { originalPostId, content } = payload;
+
+    // 1. Fetch the original post
+    const originalPost = await this.postModel
+      .findById(originalPostId)
+      .lean()
+      .exec();
+    if (!originalPost) {
+      throw new NotFoundException("Original post not found");
+    }
+
+    // ✨ THE "INCEPTION" PREVENTION ✨
+    // If the user tries to repost a repost, we link their new post to the ROOT post.
+    // This prevents deep nesting chains that break frontend UIs.
+    const rootPostId = originalPost.originalPostId || originalPost._id;
+
+    // 2. Idempotency Check (Only for "Pure" Reposts)
+    // If they aren't adding content, they can only pure-repost once.
+    const isQuote = content && content.trim().length > 0;
+
+    if (!isQuote) {
+      const existingPureRepost = await this.postModel.exists({
+        authorId: actorId,
+        originalPostId: rootPostId,
+        content: { $exists: false }, // Check for a post with no content
+      });
+
+      if (existingPureRepost) {
+        this.logger.warn(
+          { correlationId, actorId, rootPostId },
+          "User attempted to pure repost the same post multiple times",
+        );
+        return { success: true, message: "Already reposted" };
+      }
+    }
+
+    try {
+      // 3. Create the Repost Document
+      const repostDoc = new this.postModel({
+        authorId: actorId,
+        originalPostId: rootPostId,
+        content: isQuote ? content.trim() : undefined,
+      });
+
+      // 4. We MUST save this first to see if MongoDB rejects it
+      const savedRepost = await repostDoc.save();
+
+      // If we made it here, the save was successful!
+      // 5. Now it is safe to atomically increment the parent's counter.
+      await this.postModel.findByIdAndUpdate(rootPostId, {
+        $inc: { repostCount: 1 },
+      });
+
+      // 6. Metrics & Events
+      this.postCounter.inc(); // A repost is technically a new post creation!
+
+      // 7. Emit an event for further processing
+      const repostEvent: BaseEvent<any> = {
+        eventId: uuidv7(),
+        eventType: "engagement.post.reposted",
+        eventVersion: "1.0",
+        timestamp: new Date().toISOString(),
+        producer: "engagement-service",
+        correlationId: correlationId,
+        actorId: actorId,
+        data: {
+          new_post_id: savedRepost._id.toString(),
+          original_post_id: rootPostId.toString(),
+          original_author_id: originalPost.authorId.toString(),
+          is_quote: isQuote,
+        },
+      };
+
+      publishEvent("engagement.events", repostEvent).catch((err) =>
+        this.logger.error(
+          { err, correlationId },
+          "Failed to publish post reposted event",
+        ),
+      );
+
+      return savedRepost;
+    } catch (error) {
+      //✨ IDEMPOTENCY CATCH ✨
+      // If they double-clicked a pure repost, MongoDB blocks the second one.
+      if ((error as any)?.code === 11000) {
+        return { success: true, message: "Already reposted" };
+      }
+      throw error; // Throw real database crashes
+    }
+  }
+
+  // =================================================
   // Update Post by Owner (within 1 hour of creation)
   // =================================================
   async updatePost(
@@ -319,12 +426,9 @@ export class PostsService {
     payload: UpdatePostDto,
     files: Express.Multer.File[] = [],
   ): Promise<Post> {
-    const { postId, content } = payload;
+    // 1. Extract payload
+    const { postId, content, imageUrls, videoUrl } = payload;
 
-    // 1. Validate postId format
-    if (!Types.ObjectId.isValid(postId)) {
-      throw new BadRequestException("Invalid post ID");
-    }
     this.logger.info(
       { correlationId, actorId, postId, fileCount: files.length },
       "Updating post with potential media changes",
@@ -353,68 +457,140 @@ export class PostsService {
       );
     }
 
+    // Helper function to normalize URLs
+    const normalizeUrls = (
+      urls: string[] | string | null | undefined,
+    ): string[] | undefined => {
+      if (urls === undefined) return undefined;
+      if (urls === null) return [];
+      if (urls === "null") return [];
+      return Array.isArray(urls) ? urls : [urls];
+    };
+
+    const requestedImageUrls = normalizeUrls(
+      imageUrls as string[] | string | null | undefined,
+    );
+
+    // Check for updates
+    const hasContentUpdate = content !== undefined;
+    const hasImageUrlsUpdate = requestedImageUrls !== undefined;
+    const hasVideoUrlUpdate = videoUrl !== undefined;
+    const hasMediaUpdate =
+      hasImageUrlsUpdate || hasVideoUrlUpdate || files.length > 0;
+
+    if (!hasContentUpdate && !hasMediaUpdate) {
+      throw new BadRequestException(
+        "No updates provided. Send postId with changed fields only.",
+      );
+    }
+
+    const existingImages = post.images ?? [];
+    const existingVideo = post.video ?? null;
+
+    // Validate media uploads
+    const imageFiles = files.filter((f) => f.mimetype.startsWith("image/"));
+    const videoFiles = files.filter((f) => f.mimetype.startsWith("video/"));
+    const totalImages = imageFiles.length + (requestedImageUrls?.length ?? 0);
+    const totalVideos =
+      videoFiles.length +
+      (hasVideoUrlUpdate ? 0 : existingVideo !== null ? 1 : 0);
+
+    if (totalImages > 0 && totalVideos > 0) {
+      throw new BadRequestException("Cannot have both images and video.");
+    }
+    if (totalImages > env.MAX_ALLOWED_FILES) {
+      throw new BadRequestException(
+        `Maximum ${env.MAX_ALLOWED_FILES} images allowed.`,
+      );
+    }
+    if (totalVideos > 1) {
+      throw new BadRequestException("Only 1 video allowed.");
+    }
+
+    // Client can only reference already-attached media in imageUrls/videoUrl.
+    if (hasImageUrlsUpdate && requestedImageUrls.length > 0) {
+      const existingImageSet = new Set(existingImages);
+      const hasInvalidImageUrl = requestedImageUrls.some(
+        (url) => !existingImageSet.has(url),
+      );
+      if (hasInvalidImageUrl) {
+        throw new BadRequestException(
+          "Invalid imageUrls provided for this post",
+        );
+      }
+    }
+
+    let finalImages = hasImageUrlsUpdate
+      ? [...requestedImageUrls]
+      : [...existingImages];
+    let finalVideo = hasVideoUrlUpdate ? null : existingVideo;
+
     // Track state for our Rollback/Cleanup system
     const newlyUploadedObjects: string[] = [];
-    const oldMediaToCleanup: string[] = [];
+    const uploadedImageUrls: string[] = [];
+    let uploadedVideoUrl: string | null = null;
 
-    // 5. Handle media replacement (if new files are provided)
-    if (files.length > 0) {
-      const imageFiles = files.filter((f) => f.mimetype.startsWith("image/"));
-      const videoFiles = files.filter((f) => f.mimetype.startsWith("video/"));
-
-      if (imageFiles.length > 0 && videoFiles.length > 0)
-        throw new BadRequestException("Cannot upload both images and video");
-      if (imageFiles.length > 10)
-        throw new BadRequestException("Maximum 10 images allowed");
-      if (videoFiles.length > 1)
-        throw new BadRequestException("Only 1 video allowed");
-
-      // Mark old media for deletion (we will delete these ONLY if the DB saves successfully)
-      if (post.images?.length > 0) oldMediaToCleanup.push(...post.images);
-      if (post.video) oldMediaToCleanup.push(post.video);
-
-      // Upload new images
-      if (imageFiles.length > 0) {
-        const uploadedImages: string[] = [];
-        for (const file of imageFiles) {
-          const objectName = `posts/${Date.now()}-${file.originalname}`;
-          const url = await this.minioService.uploadFile(
-            "posts-bucket",
-            objectName,
-            file.buffer,
-            file.mimetype,
-          );
-          uploadedImages.push(url);
-          newlyUploadedObjects.push(objectName); // Track for potential rollback!
-        }
-        post.images = uploadedImages;
-        post.video = null;
-      }
-
-      // Upload new video
-      if (videoFiles.length === 1) {
-        const file: any = videoFiles[0];
-        const objectName = `posts/${Date.now()}-${file.originalname}`;
-        const videoUrl = await this.minioService.uploadFile(
-          "posts-bucket",
+    // 5. Upload newly added media
+    if (imageFiles.length > 0) {
+      for (const file of imageFiles) {
+        const objectName = `images/${Date.now()}-${file.originalname}`;
+        const url = await this.minioService.uploadFile(
           objectName,
           file.buffer,
           file.mimetype,
         );
-
-        post.video = videoUrl;
-        post.images = [];
-        newlyUploadedObjects.push(objectName); // Track for potential rollback!
+        uploadedImageUrls.push(url);
+        newlyUploadedObjects.push(objectName);
       }
     }
 
-    // 6. Apply content update (if provided)
-    if (content !== undefined) post.content = content;
-
-    if (content === undefined && files.length === 0) {
-      throw new BadRequestException(
-        "No updates provided. Supply content or media files.",
+    if (videoFiles.length === 1) {
+      const file = videoFiles[0];
+      if (!file) {
+        throw new BadRequestException("Invalid video file");
+      }
+      const objectName = `videos/${Date.now()}-${file.originalname}`;
+      uploadedVideoUrl = await this.minioService.uploadFile(
+        objectName,
+        file.buffer,
+        file.mimetype,
       );
+      newlyUploadedObjects.push(objectName);
+    }
+
+    finalImages =
+      uploadedImageUrls.length > 0
+        ? [...finalImages, ...uploadedImageUrls]
+        : [...finalImages];
+    finalVideo = uploadedVideoUrl === null ? finalVideo : uploadedVideoUrl;
+
+    const hasEmptyContent = (content?.trim() ?? "").length === 0;
+    const finalContent = hasContentUpdate
+      ? hasEmptyContent
+        ? undefined
+        : content!.trim()
+      : post.content;
+
+    const oldMediaToCleanup: string[] = [];
+    if (hasMediaUpdate) {
+      oldMediaToCleanup.push(
+        ...existingImages.filter((url) => !finalImages.includes(url)),
+      );
+
+      if (existingVideo && existingVideo !== finalVideo) {
+        oldMediaToCleanup.push(existingVideo);
+      }
+
+      post.images = finalImages;
+      post.video = finalVideo;
+    }
+
+    if (hasContentUpdate) {
+      if (finalContent === undefined) {
+        post.set("content", undefined);
+      } else {
+        post.content = finalContent;
+      }
     }
 
     post.isEdited = true; // Mark as edited
@@ -424,12 +600,37 @@ export class PostsService {
       const updatedPost = await post.save();
 
       // SUCCESS! The DB is safe. Now we can cleanly delete their OLD files in the background.
-      // (Assuming your MinioService has a deleteFile method)
+      const extractObjectNameFromUrl = (mediaUrl: string): string | null => {
+        const bucketMarker = `/${env.MINIO_BUCKET_NAME}/`;
+
+        try {
+          const parsed = new URL(mediaUrl);
+          const index = parsed.pathname.indexOf(bucketMarker);
+          if (index === -1) return null;
+          return decodeURIComponent(
+            parsed.pathname.slice(index + bucketMarker.length),
+          );
+        } catch {
+          const index = mediaUrl.indexOf(bucketMarker);
+          if (index === -1) return null;
+          return decodeURIComponent(
+            mediaUrl.slice(index + bucketMarker.length),
+          );
+        }
+      };
+
       for (const oldUrl of oldMediaToCleanup) {
-        // Extract the object name from your URL and delete it
-        const objectName = oldUrl.split("/").slice(-2).join("/"); // basic extraction
+        const objectName = extractObjectNameFromUrl(oldUrl);
+        if (!objectName) {
+          this.logger.warn(
+            { correlationId, oldUrl },
+            "Skipping media cleanup because object key could not be extracted",
+          );
+          continue;
+        }
+
         this.minioService
-          .deleteFile("posts-bucket", objectName)
+          .deleteFile(env.MINIO_BUCKET_NAME, objectName)
           .catch((err) =>
             this.logger.error(
               { err, correlationId, objectName },
@@ -452,8 +653,8 @@ export class PostsService {
         actorId: actorId,
         data: {
           post_id: postId,
-          content_updated: content !== undefined,
-          media_updated: files.length > 0,
+          content_updated: hasContentUpdate,
+          media_updated: hasMediaUpdate,
         },
       };
 
@@ -474,7 +675,7 @@ export class PostsService {
       );
       for (const objectName of newlyUploadedObjects) {
         await this.minioService
-          .deleteFile("posts-bucket", objectName)
+          .deleteFile(env.MINIO_BUCKET_NAME, objectName)
           .catch((err) =>
             this.logger.error(
               { err, correlationId, objectName },
@@ -590,6 +791,7 @@ export class PostsService {
       actorId: actorId,
       data: {
         post_id: postId,
+        author_id: deletedPost.authorId.toString(),
         deleted_by_admin: true,
       },
     };
@@ -606,99 +808,5 @@ export class PostsService {
       success: true,
       message: "Post successfully deleted by admin",
     };
-  }
-
-  // =================================================
-  // Create a Repost (Pure or Quote)
-  // =================================================
-  async repostPost(actorId: string, correlationId: string, payload: RepostDto) {
-    const { originalPostId, content } = payload;
-
-    // 1. Fetch the original post
-    const originalPost = await this.postModel
-      .findById(originalPostId)
-      .lean()
-      .exec();
-    if (!originalPost) {
-      throw new NotFoundException("Original post not found");
-    }
-
-    // ✨ THE "INCEPTION" PREVENTION ✨
-    // If the user tries to repost a repost, we link their new post to the ROOT post.
-    // This prevents deep nesting chains that break frontend UIs.
-    const rootPostId = originalPost.originalPostId || originalPost._id;
-
-    // 2. Idempotency Check (Only for "Pure" Reposts)
-    // If they aren't adding content, they can only pure-repost once.
-    const isQuote = content && content.trim().length > 0;
-
-    if (!isQuote) {
-      const existingPureRepost = await this.postModel.exists({
-        authorId: actorId,
-        originalPostId: rootPostId,
-        content: { $exists: false }, // Check for a post with no content
-      });
-
-      if (existingPureRepost) {
-        this.logger.warn(
-          { correlationId, actorId, rootPostId },
-          "User attempted to pure repost the same post multiple times",
-        );
-        return { success: true, message: "Already reposted" };
-      }
-    }
-
-    try {
-      // 3. Create the Repost Document
-      const repostDoc = new this.postModel({
-        authorId: actorId,
-        originalPostId: rootPostId,
-        content: isQuote ? content.trim() : undefined,
-      });
-
-      // 4. We MUST save this first to see if MongoDB rejects it
-      const savedRepost = await repostDoc.save();
-
-      // If we made it here, the save was successful!
-      // 5. Now it is safe to atomically increment the parent's counter.
-      await this.postModel.findByIdAndUpdate(rootPostId, {
-        $inc: { repostCount: 1 },
-      });
-
-      // 6. Metrics & Events
-      this.postCounter.inc(); // A repost is technically a new post creation!
-
-      // 7. Emit an event for further processing
-      const repostEvent: BaseEvent<any> = {
-        eventId: uuidv7(),
-        eventType: "engagement.post.reposted",
-        eventVersion: "1.0",
-        timestamp: new Date().toISOString(),
-        producer: "engagement-service",
-        correlationId: correlationId,
-        actorId: actorId,
-        data: {
-          new_post_id: savedRepost._id.toString(),
-          original_post_id: rootPostId.toString(),
-          is_quote: isQuote,
-        },
-      };
-
-      publishEvent("engagement.events", repostEvent).catch((err) =>
-        this.logger.error(
-          { err, correlationId },
-          "Failed to publish post reposted event",
-        ),
-      );
-
-      return savedRepost;
-    } catch (error) {
-      //✨ IDEMPOTENCY CATCH ✨
-      // If they double-clicked a pure repost, MongoDB blocks the second one.
-      if ((error as any)?.code === 11000) {
-        return { success: true, message: "Already reposted" };
-      }
-      throw error; // Throw real database crashes
-    }
   }
 }

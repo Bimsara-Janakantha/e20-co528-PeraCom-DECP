@@ -1,15 +1,17 @@
 import { Module } from "@nestjs/common";
-import { NotificationProcessorService } from "./notification-processor.service.js";
+import { IdentityNotificationService } from "./identity-notification.service.js";
+import { EngagementNotificationService } from "./engagement-notification.service.js";
 import { NotificationsModule } from "../notifications/notifications.module.js";
 import { PreferencesModule } from "../preferences/preferences.module.js";
+// You can remove the PreferencesService import here as well
 
 @Module({
-  imports: [
-    NotificationsModule,
-    PreferencesModule,
-    // Note: EmailModule is @Global, so we don't need to import it here.
+  imports: [NotificationsModule, PreferencesModule],
+  providers: [
+    IdentityNotificationService,
+    EngagementNotificationService,
+    // REMOVED PreferencesService HERE
   ],
-  providers: [NotificationProcessorService],
-  exports: [NotificationProcessorService], // Exported so the Consumer can use it
+  exports: [IdentityNotificationService, EngagementNotificationService],
 })
 export class ProcessorModule {}

@@ -3,6 +3,7 @@ import {
   makeCounterProvider,
   PrometheusModule,
 } from "@willsoto/nestjs-prometheus";
+import { env } from "../config/validateEnv.config.js";
 
 @Module({
   imports: [

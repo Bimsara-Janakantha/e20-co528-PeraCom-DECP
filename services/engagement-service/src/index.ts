@@ -19,23 +19,26 @@ async function bootstrap() {
   // 3. Use the Pino logger for structured logging
   app.useLogger(app.get(Logger));
 
-  // 4. Allow Prisma to disconnect gracefully when the app stops
+  // 4. Initialize the Kafka shared event bus connection
+  await connectProducer([env.KAFKA_BROKER]);
+
+  // 5. Allow Prisma to disconnect gracefully when the app stops
   app.enableShutdownHooks();
 
-  // 5. The security shield
+  // 6. The security shield
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
-  // 6. The trace logging interceptor
+  // 7. The trace logging interceptor
   app.useGlobalInterceptors(new TraceLoggingInterceptor());
-
-  // 7. Initialize the Kafka shared event bus connection
-  await connectProducer([env.KAFKA_BROKER]);
 
   // 8. Start the application
   await app.listen(env.NODE_PORT);

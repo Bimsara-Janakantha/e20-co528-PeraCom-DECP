@@ -3,43 +3,52 @@ import { Document } from "mongoose";
 
 export type NotificationPreferenceDocument = NotificationPreference & Document;
 
-// 1. How does the user want to be contacted?
+// --- 1. Define Sub-Schemas ---
+
+@Schema({ _id: false }) // _id: false prevents Mongoose from creating sub-IDs
 class Channels {
   @Prop({ default: true })
-  inApp!: boolean; // The bell icon UI
+  inApp!: boolean;
 
   @Prop({ default: true })
   email!: boolean;
 
   @Prop({ default: false })
-  push!: boolean; // Mobile push notifications (for future scaling)
+  push!: boolean;
 }
+const ChannelsSchema = SchemaFactory.createForClass(Channels);
 
-// 2. What types of events do they care about?
+@Schema({ _id: false })
 class Categories {
   @Prop({ default: true })
-  collaboration!: boolean; // Project invites, join requests
+  collaboration!: boolean;
 
   @Prop({ default: true })
-  direct_messages!: boolean; // Offline message alerts
+  direct_messages!: boolean;
 
   @Prop({ default: true })
-  social_interactions!: boolean; // Likes, comments
+  social_interactions!: boolean;
 
   @Prop({ default: true })
-  career_alerts!: boolean; // Job matches, application updates
+  career_alerts!: boolean;
+
+  @Prop({ default: true })
+  account_security!: boolean;
 }
+const CategoriesSchema = SchemaFactory.createForClass(Categories);
+
+// --- 2. Define Main Schema ---
 
 @Schema({ timestamps: true })
 export class NotificationPreference {
-  // One preference document per user
   @Prop({ required: true, unique: true, index: true })
   userId!: string;
 
-  @Prop({ type: Channels, default: () => new Channels() })
+  // Use the Schema types here to ensure defaults are respected
+  @Prop({ type: ChannelsSchema, default: () => ({}) })
   channels!: Channels;
 
-  @Prop({ type: Categories, default: () => new Categories() })
+  @Prop({ type: CategoriesSchema, default: () => ({}) })
   categories!: Categories;
 }
 
