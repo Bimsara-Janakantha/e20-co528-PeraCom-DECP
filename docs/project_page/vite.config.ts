@@ -5,7 +5,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: "/DECP/",
+  base: "/PeraCom-DECP/",
   build: {
     outDir: "dist",
   },
