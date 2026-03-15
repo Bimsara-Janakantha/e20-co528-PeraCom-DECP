@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 78% 8%;
+    --foreground: 210 40% 98%;
+    --card: 220 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 220 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 221 76% 49%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 222 47% 14%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 220 26% 20%;
+    --muted-foreground: 218 11% 65%;
+    --accent: 187 94% 43%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 26% 16%;
+    --input: 220 26% 16%;
+    --ring: 221 76% 49%;
+    --radius: 0.75rem;
+
+    --sidebar-background: 222 78% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 221 76% 49%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 220 26% 16%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 220 26% 16%;
+    --sidebar-ring: 221 76% 49%;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(222 78% 8%);
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(220 26% 20%);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(220 26% 30%);
+}
+
+/* Grid pattern overlay */
+.grid-pattern {
+  background-image: 
+    linear-gradient(rgba(26, 86, 219, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 86, 219, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(221 76% 49%), hsl(187 94% 43%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-hover:hover {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(26, 86, 219, 0.15) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out;
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Pulse glow for Kafka */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.2); }
+  50% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.4); }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Bounce animation for scroll indicator */
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+/* Gradient line divider */
+.gradient-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(221 76% 49% / 0.5), hsl(187 94% 43% / 0.5), transparent);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Font families */
+.font-display {
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}

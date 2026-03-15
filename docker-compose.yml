@@ -402,3 +402,28 @@ services:
       - decp-network
     expose:
       - "4007"
+
+  # ==========================
+  # FRONTEND SERVICES
+  # ==========================
+  web-app:
+    container_name: decp-web-app
+    build:
+      context: .
+      dockerfile: ./clients/web/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_MAX_ALLOWED_FILES: ${VITE_MAX_ALLOWED_FILES}
+        VITE_MAX_IMAGE_SIZE_MB: ${VITE_MAX_IMAGE_SIZE_MB}
+        VITE_MAX_ALLOWED_CHARACTERS: ${VITE_MAX_ALLOWED_CHARACTERS}
+        VITE_FEED_LIMIT: ${VITE_FEED_LIMIT}
+    env_file:
+      - ./clients/web/.env.prod
+    depends_on:
+      - kong
+    networks:
+      - decp-network
+    ports:
+      - "80:80"
+    restart: always
