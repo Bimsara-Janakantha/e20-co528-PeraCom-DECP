@@ -1095,9 +1095,10 @@ const PostCard = ({
 };
 
 const SocialFeedPage = () => {
-  const { user, isLoading, setIsLoading } = useAuth();
+  const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Post Creation States
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
@@ -1150,9 +1151,12 @@ const SocialFeedPage = () => {
 
     try {
       const params = { cursor, limit: FEED_PAGE_LIMIT };
+      console.log("Fetching posts with params:", params);
+
       const postResponse = await api.get("/engagement/posts", { params });
 
       const postsData = postResponse.data.data || [];
+      console.log("Fetched posts:", postResponse.data);
       setCursor(postResponse.data.nextCursor ?? null);
 
       let finalPosts = [];
