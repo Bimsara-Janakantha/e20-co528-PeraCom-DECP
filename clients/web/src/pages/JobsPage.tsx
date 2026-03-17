@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import api from "@/services/api";
 import { toast } from "@/components/ui/sonner";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 type EmploymentType = JobFeedItem["employmentType"] | "ALL";
 type WorkModeType = JobFeedItem["workMode"] | "ALL";
@@ -38,6 +39,8 @@ const FEED_LIMIT = import.meta.env.VITE_FEED_LIMIT;
 
 const JobsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
   const [empfilter, setEmpFilter] = useState<EmploymentType>("ALL");
   const [workModeFilter, setWorkModeFilter] = useState<WorkModeType>("ALL");
   const [jobs, setJobs] = useState<JobFeedItem[]>([]);
@@ -173,6 +176,15 @@ const JobsPage = () => {
             ))}
           </select>
         </div>
+
+        {user?.role === "ALUMNI" && (
+          <button
+            onClick={() => navigate("my-created")}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            My Posted Jobs
+          </button>
+        )}
       </div>
 
       {/* Job Listings */}
