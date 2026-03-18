@@ -7,7 +7,7 @@ import {
   Building,
   BriefcaseBusiness,
 } from "lucide-react";
-import { JobFeedItem } from "@/types";
+import { EmploymentType, JobFeedItem, WorkMode } from "@/types";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import api from "@/services/api";
@@ -16,10 +16,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import EmptyState from "@/components/EmptyState";
 
-type EmploymentType = JobFeedItem["employmentType"] | "ALL";
-type WorkModeType = JobFeedItem["workMode"] | "ALL";
+type EmpType = EmploymentType | "ALL";
+type WorkModeType = WorkMode | "ALL";
 
-const employmentTypeOptions: { value: EmploymentType; label: string }[] = [
+const employmentTypeOptions: { value: EmpType; label: string }[] = [
   { value: "ALL", label: "All" },
   { value: "FULL_TIME", label: "Full Time" },
   { value: "PART_TIME", label: "Part Time" },
@@ -48,7 +48,7 @@ const JobsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [empfilter, setEmpFilter] = useState<EmploymentType>("ALL");
+  const [empfilter, setEmpFilter] = useState<EmpType>("ALL");
   const [workModeFilter, setWorkModeFilter] = useState<WorkModeType>("ALL");
   const [jobs, setJobs] = useState<JobFeedItem[]>([]);
   const [searchValue, setSearchValue] = useState<string>("");
@@ -186,10 +186,10 @@ const JobsPage = () => {
 
         {user?.role === "ALUMNI" && (
           <button
-            onClick={() => navigate("my-created")}
+            onClick={() => navigate("/jobs/manage")}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            My Posted Jobs
+            Manage Jobs
           </button>
         )}
       </div>

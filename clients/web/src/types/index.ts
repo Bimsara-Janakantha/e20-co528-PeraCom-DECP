@@ -8,6 +8,16 @@ export type ReactionType =
   | "HAHA"
   | "INSIGHTFUL";
 
+export type WorkMode = "ON_SITE" | "REMOTE" | "HYBRID";
+
+export type EmploymentType =
+  | "FULL_TIME"
+  | "PART_TIME"
+  | "INTERNSHIP"
+  | "CONTRACT";
+
+export type JobStatus = "DRAFT" | "PUBLISHED" | "CLOSED";
+
 export interface UserSummary {
   userId: string;
   email: string;
@@ -48,9 +58,9 @@ export interface JobFeedItem {
   companyName: string;
   description: string;
   location: string;
-  employmentType: "FULL_TIME" | "PART_TIME" | "INTERNSHIP" | "CONTRACT";
-  workMode: "ON_SITE" | "REMOTE" | "HYBRID";
-  status: "DRAFT" | "PUBLISHED" | "CLOSED";
+  employmentType: EmploymentType;
+  workMode: WorkMode;
+  status: JobStatus;
   applicationCount: number;
   updatedAt: string;
 }
