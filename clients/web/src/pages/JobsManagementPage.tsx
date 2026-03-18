@@ -1,4 +1,11 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import api from "@/services/api";
@@ -72,7 +79,7 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return e?.response?.data?.message || e?.message || fallback;
 };
 
-const FEED_LIMIT = 3; //Number(import.meta.env.VITE_FEED_LIMIT) || 10;
+const FEED_LIMIT = Number(import.meta.env.VITE_FEED_LIMIT) || 10;
 
 /** Deduplicate an array of jobs by _id, keeping the first occurrence. */
 const deduplicateById = (items: JobFeedItem[]): JobFeedItem[] => {
@@ -110,6 +117,7 @@ const JobsManagementPage = () => {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState<boolean>(false);
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState<boolean>(false);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const resetFeed = useCallback(() => {
     setJobs([]);
@@ -119,40 +127,51 @@ const JobsManagementPage = () => {
   }, []);
 
   // ─── Cursor based pagination ────────────────────────────────────
-  const fetchJobs = async (overrideCursor?: boolean) => {
-    setIsLoadingJobs(true);
+  const fetchJobs = useCallback(
+    async (options?: { reset?: boolean }) => {
+      const reset = options?.reset ?? false;
+      if (isLoadingJobs) return;
 
-    try {
-      // Create Parameters
-      const params = {
-        cursor: nextCursor,
-        limit: FEED_LIMIT,
-        search,
-        status: statusFilter === "ALL" ? undefined : statusFilter,
-      };
-      console.log("Fetching jobs with params:", params);
+      const cursorToUse = reset ? null : nextCursor;
+      if (!reset && !cursorToUse) return;
 
-      // Determine Endpoint
-      const endpoint =
-        user.role === "ADMIN" ? "career/jobs/admin" : "career/jobs/my-created";
+      setIsLoadingJobs(true);
 
-      // Fetch Jobs
-      const response = await api.get(endpoint, { params });
-      console.log("Fetched jobs:", response.data);
-      const { nextCursor: fetchedNextCursor, data } = response.data;
+      try {
+        // Create Parameters
+        const params = {
+          cursor: cursorToUse,
+          limit: FEED_LIMIT,
+          search,
+          status: statusFilter === "ALL" ? undefined : statusFilter,
+        };
+        console.log("Fetching jobs with params:", params);
 
-      // Remove duplicates and update the Job list
-      setJobs((prev) =>
-        overrideCursor ? data : deduplicateById([...prev, ...data]),
-      );
-      setNextCursor(fetchedNextCursor ?? null);
-    } catch (error) {
-      toast.error(getErrorMessage(error, "Failed to load jobs"));
-      console.error("Fetch Error:", error);
-    } finally {
-      setIsLoadingJobs(false);
-    }
-  };
+        // Determine Endpoint
+        const endpoint =
+          roleView === "ADMIN" ? "career/jobs/admin" : "career/jobs/my-created";
+
+        // Fetch Jobs
+        const response = await api.get(endpoint, { params });
+        console.log("Fetched jobs:", response.data);
+        const { nextCursor: fetchedNextCursor, data } = response.data;
+
+        // Remove duplicates and update the job list
+        setJobs((prev) =>
+          reset
+            ? deduplicateById(data ?? [])
+            : deduplicateById([...prev, ...data]),
+        );
+        setNextCursor(fetchedNextCursor ?? null);
+      } catch (error) {
+        toast.error(getErrorMessage(error, "Failed to load jobs"));
+        console.error("Fetch Error:", error);
+      } finally {
+        setIsLoadingJobs(false);
+      }
+    },
+    [isLoadingJobs, nextCursor, roleView, search, statusFilter],
+  );
 
   const fetchReportedJobs = async () => {
     setIsLoadingReported(true);
@@ -170,16 +189,46 @@ const JobsManagementPage = () => {
 
   // Auto trigger on search or status filter change
   useEffect(() => {
+    if (!roleView) return;
+
     console.log(
       "Search or status filter changed, resetting feed and fetching jobs",
       nextCursor,
       search,
       statusFilter,
     );
-    fetchJobs(true); // Override cursor to reset feed to first page
+    fetchJobs({ reset: true }); // Reset feed to the first page
 
+    // fetchJobs depends on cursor state used for incremental loading.
+    // Here we only want to reset on filter changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statusFilter]);
+  }, [roleView, search, statusFilter]);
+
+  // Auto load next page when the sentinel enters the viewport
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || isLoadingJobs || !nextCursor || !roleView) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const firstEntry = entries[0];
+        if (firstEntry?.isIntersecting) {
+          fetchJobs();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "240px 0px",
+        threshold: 0.1,
+      },
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [fetchJobs, isLoadingJobs, nextCursor, roleView]);
 
   // ─── Create Job ────────────────────────────────────
   const handleCreateJob = async (event: FormEvent<HTMLFormElement>) => {
@@ -221,7 +270,7 @@ const JobsManagementPage = () => {
       setForm(DEFAULT_FORM);
       setIsCreateDialogOpen(false);
       resetFeed();
-      fetchJobs(true); // Fetch with override to reset feed to first page
+      fetchJobs({ reset: true }); // Reset feed to the first page
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to create job"));
     } finally {
@@ -237,7 +286,7 @@ const JobsManagementPage = () => {
       await api.patch(`career/jobs/${jobId}/publish`);
       toast.success("Job published successfully");
       resetFeed();
-      fetchJobs(true); // Refresh the feed, overriding cursor to reset to first page
+      fetchJobs({ reset: true }); // Refresh from the first page
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to publish job"));
     } finally {
@@ -253,7 +302,6 @@ const JobsManagementPage = () => {
 
   const handleClose = async () => {
     if (!pendingJobId) return;
-
     try {
       const endpoint =
         roleView === "ADMIN"
@@ -262,7 +310,7 @@ const JobsManagementPage = () => {
       await api.delete(endpoint);
       toast.success("Job closed successfully");
       resetFeed();
-      fetchJobs(true); // Refresh the feed, overriding cursor to reset to first page
+      fetchJobs({ reset: true }); // Refresh from the first page
     } catch (error) {
       toast.error(getErrorMessage(error, "Failed to close job"));
     } finally {
@@ -285,7 +333,7 @@ const JobsManagementPage = () => {
   return (
     <div className="space-y-6">
       {/* Header Section */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex gap-2 justify-between sm:items-end">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
             Jobs Management
@@ -299,12 +347,13 @@ const JobsManagementPage = () => {
         <button
           type="button"
           onClick={() => {
-            fetchJobs(true); // Refresh the main feed, overriding cursor to reset to first page
+            fetchJobs({ reset: true }); // Refresh the main feed from first page
             if (roleView === "ADMIN") fetchReportedJobs();
           }}
-          className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-secondary"
+          className="inline-flex flex align-center justify-center items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-secondary min-w-14"
         >
-          <RefreshCcw className="h-4 w-4" /> Refresh
+          <RefreshCcw className="h-4 w-4" />
+          <p className="hidden sm:inline">Refresh</p>
         </button>
       </div>
 
@@ -330,7 +379,7 @@ const JobsManagementPage = () => {
           ) : reportedJobs.length === 0 ? (
             <EmptyState
               icon={<FlagIcon className="h-12 w-12" />}
-              title="No reportedjobs found"
+              title="No reported jobs found"
               description="It seems there are no reported jobs at the moment."
             />
           ) : (
@@ -698,6 +747,8 @@ const JobsManagementPage = () => {
                 </span>
               </div>
             )}
+
+            {nextCursor && <div ref={loadMoreRef} className="h-1 w-full" />}
           </>
         )}
       </section>
