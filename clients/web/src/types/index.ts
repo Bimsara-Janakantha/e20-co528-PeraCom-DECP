@@ -69,7 +69,7 @@ export interface Job extends JobFeedItem {
   department: string;
   tags: string[];
   salaryRange?: string;
-  postedBy: User;
+  postedBy: UserSummary;
   deadline: string;
   createdAt: string;
 }

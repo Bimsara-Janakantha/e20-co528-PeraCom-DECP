@@ -74,7 +74,6 @@ const MAX_ALLOWED_CHARACTERS = import.meta.env.VITE_MAX_ALLOWED_CHARACTERS;
 const MAX_VISIBLE_CHARACTERS = 200;
 const FEED_PAGE_LIMIT = import.meta.env.VITE_FEED_LIMIT;
 const COMMENTS_PREVIEW_LIMIT = 3;
-const APPEND = true;
 
 type AuthorSummaryRaw = {
   id: string;
@@ -521,7 +520,7 @@ const PostCard = ({
     try {
       await api.delete(endpoint);
       toast.success("Post deleted");
-      await onFeedRefresh?.();
+      await onFeedRefresh({ reset: true });
     } catch (error) {
       toast.error(
         getErrorMessage(error, "Failed to delete post. Please try again."),
@@ -1153,7 +1152,7 @@ const SocialFeedPage = () => {
 
       try {
         // Create Parameters
-        const params = { cursor, limit: FEED_PAGE_LIMIT };
+        const params = { cursor: cursorToUse, limit: FEED_PAGE_LIMIT };
         console.log("Fetching posts with params:", params);
 
         const postResponse = await api.get("/engagement/posts", { params });
@@ -1219,13 +1218,13 @@ const SocialFeedPage = () => {
 
         // 5. Update state
         setPosts((prevPosts) =>
-          APPEND
-            ? deduplicateById<Post>([...prevPosts, ...finalPosts]).sort(
+          reset
+            ? finalPosts
+            : deduplicateById<Post>([...prevPosts, ...finalPosts]).sort(
                 (a, b) =>
                   new Date(b.updatedAt).getTime() -
                   new Date(a.updatedAt).getTime(),
-              )
-            : finalPosts,
+              ),
         );
       } catch (error) {
         toast.error(getErrorMessage(error, "Failed to load posts"));

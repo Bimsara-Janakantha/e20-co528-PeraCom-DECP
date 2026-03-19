@@ -25,6 +25,7 @@ function getValidatedEnv() {
     "MINIO_ACCESS_KEY",
     "MINIO_SECRET_KEY",
     "MINIO_PUBLIC_URL",
+    "MINIO_BUCKET_NAME",
     "VIEW_TIME_LIMIT_MINUTES",
     "MAX_FILE_SIZE_MB",
     "ENVIRONMENT",
@@ -54,6 +55,7 @@ function getValidatedEnv() {
     MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY as string,
     MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY as string,
     MINIO_PUBLIC_URL: process.env.MINIO_PUBLIC_URL as string,
+    MINIO_BUCKET_NAME: process.env.MINIO_BUCKET_NAME as string,
     VIEW_TIME_LIMIT_MINUTES: parseInt(
       process.env.VIEW_TIME_LIMIT_MINUTES as string,
       10,

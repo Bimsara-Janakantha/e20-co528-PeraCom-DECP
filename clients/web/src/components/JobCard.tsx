@@ -1,7 +1,9 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { JobFeedItem } from "@/types";
 import { formatDistanceToNow } from "date-fns";
 import { Building, Clock, MapPin, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface JobCardProps {
   job: JobFeedItem;
@@ -50,6 +52,9 @@ const MODE_CONFIG: Record<string, { label: string; class: string }> = {
 const MAX_DESC_LENGTH = 200;
 
 export default function JobCard({ job, actions }: JobCardProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   const typeInfo = TYPE_CONFIG[job.employmentType] || {
     label: job.employmentType,
     class: "",
@@ -70,7 +75,11 @@ export default function JobCard({ job, actions }: JobCardProps) {
           {/* Header & Badges */}
           <div>
             <h3
-              onClick={() => window.open(`/jobs/apply/${job._id}`, "_blank")}
+              onClick={() =>
+                navigate(
+                  `${user?.role === "ADMIN" ? "/admin" : ""}/jobs/view/${job._id}`,
+                )
+              }
               className="text-lg font-bold text-card-foreground group-hover:text-primary transition-colors leading-snug hover:underline cursor-pointer"
             >
               {job.title}

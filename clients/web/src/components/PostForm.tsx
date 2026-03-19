@@ -310,7 +310,7 @@ export default function PostForm({
         </div>
       </div>
 
-      <DialogFooter className="flex items-center justify-between sm:justify-between p-4 border-t border-border bg-secondary/5 w-full h-[70px]">
+      <DialogFooter className="flex flex-row items-center justify-between sm:justify-between p-4 border-t border-border bg-secondary/5 w-full h-[70px]">
         <div className="flex items-center">
           <input
             type="file"

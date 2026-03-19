@@ -15,6 +15,8 @@ import ResearchPage from "@/pages/ResearchPage";
 import EventsPage from "@/pages/EventsPage";
 import JobsPage from "@/pages/JobsPage";
 import JobsManagementPage from "@/pages/JobsManagementPage";
+import ViewJobPage from "@/pages/ViewJobPage";
+import ApplyJobPage from "@/pages/ApplyJobPage";
 import AlumniPage from "@/pages/AlumniPage";
 import ProfilePage from "@/pages/ProfilePage";
 import SocialFeedPage from "@/pages/SocialFeedPage";
@@ -49,8 +51,10 @@ const App = () => (
               "/research",
               "/events",
               "/jobs",
-              "/alumni",
+              "/people",
               "/profile",
+              "/jobs/view/:id",
+              "/jobs/apply/:id"
             ].map((path) => (
               <Route
                 key={path}
@@ -64,8 +68,10 @@ const App = () => (
                       {path === "/research" && <ResearchPage />}
                       {path === "/events" && <EventsPage />}
                       {path === "/jobs" && <JobsPage />}
-                      {path === "/alumni" && <AlumniPage />}
+                      {path === "/people" && <AlumniPage />}
                       {path === "/profile" && <ProfilePage />}
+                      {path === "/jobs/view/:id" && <ViewJobPage />}
+                      {path === "/jobs/apply/:id" && <ApplyJobPage />}
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
@@ -92,6 +98,7 @@ const App = () => (
               "/admin/jobs",
               "/admin/research",
               "/admin/posts",
+              "/admin/jobs/view/:id"
             ].map((path) => (
               <Route
                 key={path}
@@ -105,6 +112,7 @@ const App = () => (
                       {path === "/admin/jobs" && <JobsManagementPage />}
                       {path === "/admin/research" && <ResearchPage />}
                       {path === "/admin/posts" && <SocialFeedPage />}
+                      {path === "/admin/jobs/view/:id" && <ViewJobPage />}
                     </AdminLayout>
                   </ProtectedRoute>
                 }

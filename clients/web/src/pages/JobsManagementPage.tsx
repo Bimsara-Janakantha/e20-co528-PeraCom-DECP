@@ -82,6 +82,8 @@ const JobsManagementPage = () => {
     return null;
   }, [user.role]);
 
+  const viewPath = roleView === "ADMIN" ? "/admin/jobs/view" : "/jobs/view";
+
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [form, setForm] = useState<CreateJobForm>(DEFAULT_FORM);
   const [jobs, setJobs] = useState<JobFeedItem[]>([]);
@@ -375,7 +377,7 @@ const JobsManagementPage = () => {
                   <div className="mt-2">
                     <button
                       type="button"
-                      onClick={() => navigate(`/jobs/view/${job._id}`)}
+                      onClick={() => navigate(`${viewPath}/${job._id}`)}
                       className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100"
                     >
                       View
@@ -612,7 +614,7 @@ const JobsManagementPage = () => {
         </div>
       </div>
 
-      {/* Confirm Dialog: Close Job (Owner) */}
+      {/* Confirm Dialog */}
       <ConfirmDialogBox
         open={isCloseConfirmOpen}
         onOpenChange={setIsCloseConfirmOpen}
@@ -685,7 +687,7 @@ const JobsManagementPage = () => {
                         variant="outline"
                         size="sm"
                         onClick={() =>
-                          window.open(`/jobs/${job._id}`, "_blank")
+                          window.open(`${viewPath}/${job._id}`, "_blank")
                         }
                         className="flex-1 gap-2 border-primary/20 text-primary hover:bg-primary/5 sm:flex-none w-full"
                       >

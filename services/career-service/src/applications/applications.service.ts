@@ -91,9 +91,9 @@ export class ApplicationsService {
     // 6. Upload Files to MinIO
     // Using Promise.all so they upload to MinIO concurrently, saving time!
     try {
+      console.log("Uploading files to MinIO...");
       const uploadPromises = [
         this.storageService.uploadPrivateFile(
-          "resumes",
           resumePath,
           resumeFile.buffer,
           resumeFile.mimetype,
@@ -103,7 +103,6 @@ export class ApplicationsService {
       if (coverLetterFile && coverLetterPath) {
         uploadPromises.push(
           this.storageService.uploadPrivateFile(
-            "cover-letters",
             coverLetterPath,
             coverLetterFile.buffer,
             coverLetterFile.mimetype,
@@ -112,6 +111,7 @@ export class ApplicationsService {
       }
 
       await Promise.all(uploadPromises);
+      console.log("Uploaded files to MinIO successfully");
     } catch (err) {
       // If MinIO fails halfway, log it and abort
       this.logger.error(
@@ -129,8 +129,8 @@ export class ApplicationsService {
       const application = new this.appModel({
         jobId: job._id,
         applicantId: actorId,
-        resumeUrl: resumePath,
-        coverLetterUrl: coverLetterPath,
+        resume: resumePath,
+        coverLetter: coverLetterPath,
         status: ApplicationStatus.SUBMITTED,
       });
 
@@ -174,31 +174,31 @@ export class ApplicationsService {
     } catch (error: any) {
       // ✨ THE COMPENSATING TRANSACTION ✨
       // If MongoDB throws a Duplicate Key error, we MUST delete the MinIO files we just uploaded
-      if (error.code === 11000) {
-        // Run deletions concurrently
-        const rollbackPromises = [
+      console.error("Error saving application to DB:", error);
+
+      // Run deletions concurrently
+      const rollbackPromises = [
+        this.storageService
+          .deletePrivateFile(resumePath)
+          .catch((err: Error) =>
+            this.logger.error(
+              { err, path: resumePath },
+              "Failed to rollback resume upload",
+            ),
+          ),
+      ];
+
+      if (coverLetterPath) {
+        rollbackPromises.push(
           this.storageService
-            .deletePrivateFile("resume", resumePath)
+            .deletePrivateFile(coverLetterPath)
             .catch((err: Error) =>
               this.logger.error(
-                { err, path: resumePath },
-                "Failed to rollback resume upload",
+                { err, path: coverLetterPath },
+                "Failed to rollback cover letter upload",
               ),
             ),
-        ];
-
-        if (coverLetterPath) {
-          rollbackPromises.push(
-            this.storageService
-              .deletePrivateFile("cover-letter", coverLetterPath)
-              .catch((err: Error) =>
-                this.logger.error(
-                  { err, path: coverLetterPath },
-                  "Failed to rollback cover letter upload",
-                ),
-              ),
-          );
-        }
+        );
 
         await Promise.all(rollbackPromises);
 
@@ -417,7 +417,6 @@ export class ApplicationsService {
 
     // 5. Ask MinIO for a URL that expires in 15 minutes
     const presignedUrl = await this.storageService.generatePresignedGetUrl(
-      "resumes",
       app.resume,
     );
 

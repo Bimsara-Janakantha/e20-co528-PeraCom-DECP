@@ -49,7 +49,8 @@ export class JobsController {
   }
 
   // GET /jobs/details/my-created/:id
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles("ALUMNI")
   @Get("details/my-created/:id")
   async viewMyCreatedJob(
     @ActorId() actorId: string,
