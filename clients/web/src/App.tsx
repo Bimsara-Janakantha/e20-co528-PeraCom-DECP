@@ -51,7 +51,7 @@ const App = () => (
               "/research",
               "/events",
               "/jobs",
-              "/alumni",
+              "/people",
               "/profile",
               "/jobs/view/:id",
               "/jobs/apply/:id"
@@ -68,7 +68,7 @@ const App = () => (
                       {path === "/research" && <ResearchPage />}
                       {path === "/events" && <EventsPage />}
                       {path === "/jobs" && <JobsPage />}
-                      {path === "/alumni" && <AlumniPage />}
+                      {path === "/people" && <AlumniPage />}
                       {path === "/profile" && <ProfilePage />}
                       {path === "/jobs/view/:id" && <ViewJobPage />}
                       {path === "/jobs/apply/:id" && <ApplyJobPage />}
