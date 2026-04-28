@@ -22,5 +22,7 @@
             "email": "biswajithd@eng.pdn.ac.lk"
         }
     ],
-    "tags": ["MicroServices", "Kafka", "Docker", "DECP", "PeraCom", "Applied Software Architecture"]
+    "tags": ["MicroServices", "Kafka", "Docker", "DECP", "PeraCom", "Applied Software Architecture"],
+    "image":"cover_page.jpg",
+    "thumbnail":"thumbnail.jpg"
 }
